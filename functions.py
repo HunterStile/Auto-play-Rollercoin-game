@@ -1,7 +1,9 @@
 import pyautogui
+import cv2
+import numpy as np
+from PIL import ImageGrab
 from time import sleep
 from PIL import Image,ImageChops
-import webbrowser
 
 # VARIABILI
 giu = 'down'
@@ -73,6 +75,7 @@ def verifica_cambio(screenshot_before, screenshot_after):
         return True
     
 def gioco_2048():
+    pyautogui.scroll(500)
     #Variabili
     attesa = 0.1
     secondi = 0
@@ -92,8 +95,8 @@ def gioco_2048():
     #gioco pronto, inizio a giocare
     print("Il gioco è pronto, inizio a giocare...")
     click(1000,500)     #Click per iniziare
-    sleep(4)
-    while secondi < 60:
+    sleep(6)
+    while secondi < 55:
         secondi += 1
         print(secondi)
         freccia(giu)
@@ -107,11 +110,52 @@ def gioco_2048():
         freccia(giu)
 
     print("Fine del gioco!")
-    click(1004,613)  #Gain Power
-    sleep(12)
-    click(991,695)  #Collect
-    sleep(2)
-    click(1130,471)  #Choose Game
+    click(970, 678)  #Gain Power
+    sleep(3)
+    click(112, 292)  #Choose Game
     
     sleep(10)
 
+def get_game_screenshot():
+    # Acquisisce uno screenshot dell'area di gioco
+    screenshot = ImageGrab.grab()
+    screenshot_np = np.array(screenshot)
+    return screenshot_np
+
+def detect_circles(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, 1.2, 100)
+    return circles
+
+def is_hamster_in_circle(hamster_pos, circle):
+    circle_x, circle_y, radius = circle
+    distance = np.sqrt((hamster_pos[0] - circle_x) ** 2 + (hamster_pos[1] - circle_y) ** 2)
+    return distance <= radius
+
+def Hamster_Climber():
+    while True:
+        x = 100 # Esempio di posizione x del criceto
+        y = 100
+        image = get_game_screenshot()
+        circles = detect_circles(image)
+        
+        if circles is not None:
+            circles = np.round(circles[0, :]).astype("int")
+            for (x, y, r) in circles:
+                cv2.circle(image, (x, y), r, (0, 255, 0), 4)
+        
+        # Simuliamo un punto centrale per il criceto come esempio
+        hamster_pos = (x, y) # Questo dovrebbe essere rilevato correttamente nel tuo caso
+
+        for circle in circles:
+            if is_hamster_in_circle(hamster_pos, circle):
+                pyautogui.click(x, y)
+                break
+
+        # Mostra l'immagine per il debug
+        cv2.imshow("Game", image)
+        if cv2.waitKey(25) & 0xFF == ord("q"):
+            cv2.destroyAllWindows()
+            break
+        sleep(0.1) # Attendere un breve momento prima della prossima iterazi
