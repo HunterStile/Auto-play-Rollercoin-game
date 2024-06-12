@@ -82,7 +82,7 @@ def get_game_screenshot():
     return screenshot_np
 
 #GIOCHI
-def gioco_2048():
+def Game2048():
     #Variabili
     attesa = 0.1
     secondi = 0
@@ -102,7 +102,6 @@ def gioco_2048():
 
     print("Fine del gioco!")
 
-#64, 117, 1539, 1013
 def mouse_click(x, y, wait=0.2):
     pyautogui.click(x, y)
     sleep(wait)

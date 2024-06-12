@@ -1,5 +1,4 @@
 from functions import *
 
-
-
-key = cerca_posizione()
+while True:
+    cerca_posizione()
