@@ -10,9 +10,9 @@ giu = 'down'
 su = 'up'
 destro = 'right'
 sinistra = 'left'
-
 url = 'https://rollercoin.com/game/choose_game'
 
+# PYAUTOGUI
 def freccia(verso):
     pyautogui.press(verso)
     
@@ -40,6 +40,7 @@ def trascina_dx(posizione_x,posizione_y):
 def trascina_dx_doppio(posizione_x,posizione_y):
     pyautogui.dragTo(posizione_x,posizione_y,button='right',duration=2)
 
+# Funzioni
 def cerca_posizione():
     print('Posiziona il puntantore...')
     sleep(3)
@@ -73,29 +74,19 @@ def verifica_cambio(screenshot_before, screenshot_after):
     else:
         print("Le immagini sono simili, l'azione ha causato cambiamenti minimi o trascurabili.")
         return True
-    
+
+def get_game_screenshot():
+    # Acquisisce uno screenshot dell'area di gioco
+    screenshot = ImageGrab.grab()
+    screenshot_np = np.array(screenshot)
+    return screenshot_np
+
+#GIOCHI
 def gioco_2048():
-    pyautogui.scroll(500)
     #Variabili
     attesa = 0.1
     secondi = 0
-    cooldown = True
-    #Aspetto che  gioco sia pronto
-    while cooldown == True:
-        print("In attesa che il gioco sia pronto...")
-        sleep(10)
-        muovi_mouse(582,986)                                                #Posiziono il mouse su play
-        screenshot_before = pyautogui.screenshot()                          #Salvo lo screenshot prima del click
-        #Inizio del gioco
-        click(582,986)                                                      #Click su play
-        sleep(2)
-        screenshot_after = pyautogui.screenshot()                           #Salvo lo screenshot dopo il click
-        cooldown = verifica_cambio(screenshot_before, screenshot_after)     #Verifico se il click ha causato cambiamenti
-        
-    #gioco pronto, inizio a giocare
-    print("Il gioco è pronto, inizio a giocare...")
-    click(1000,500)     #Click per iniziare
-    sleep(6)
+   
     while secondi < 55:
         secondi += 1
         print(secondi)
@@ -110,52 +101,55 @@ def gioco_2048():
         freccia(giu)
 
     print("Fine del gioco!")
-    click(970, 678)  #Gain Power
-    sleep(3)
-    click(112, 292)  #Choose Game
-    
-    sleep(10)
 
-def get_game_screenshot():
-    # Acquisisce uno screenshot dell'area di gioco
-    screenshot = ImageGrab.grab()
-    screenshot_np = np.array(screenshot)
-    return screenshot_np
+#64, 117, 1539, 1013
+def mouse_click(x, y, wait=0.2):
+    pyautogui.click(x, y)
+    sleep(wait)
 
-def detect_circles(image):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, 1.2, 100)
-    return circles
+def coinclick(a):
+    print("START GRY")
+    while a==1:
+        pic = pyautogui.screenshot(region=(530, 430, 828, 417))
+        width, height = pic.size
+        for x in range(0, width, 5):
+            for y in range(0, height, 5):
+                r, g, b = pic.getpixel((x, y))
 
-def is_hamster_in_circle(hamster_pos, circle):
-    circle_x, circle_y, radius = circle
-    distance = np.sqrt((hamster_pos[0] - circle_x) ** 2 + (hamster_pos[1] - circle_y) ** 2)
-    return distance <= radius
+                #Fine
+                if b == 228 and r == 3 and g == 225:
+                    print(f"Fine at ({x},{y}): R={r}, G={g}, B={b}")
+                    a = 0
+                    break
 
-def Hamster_Climber():
-    while True:
-        x = 100 # Esempio di posizione x del criceto
-        y = 100
-        image = get_game_screenshot()
-        circles = detect_circles(image)
-        
-        if circles is not None:
-            circles = np.round(circles[0, :]).astype("int")
-            for (x, y, r) in circles:
-                cv2.circle(image, (x, y), r, (0, 255, 0), 4)
-        
-        # Simuliamo un punto centrale per il criceto come esempio
-        hamster_pos = (x, y) # Questo dovrebbe essere rilevato correttamente nel tuo caso
+                 # eth coin
+                if b == 207 and r == 66 and g==105:
+                    print(f"eth at ({x},{y}): R={r}, G={g}, B={b}")
+                    mouse_click(x + 535, y + 440, wait=0)
+                    break
 
-        for circle in circles:
-            if is_hamster_in_circle(hamster_pos, circle):
-                pyautogui.click(x, y)
-                break
+                # blue coin
+                if b == 183 and r == 0:
+                    print(f"dash at ({x},{y}): R={r}, G={g}, B={b}")
+                    mouse_click(x + 530, y + 440, wait=0)
+                    break
 
-        # Mostra l'immagine per il debug
-        cv2.imshow("Game", image)
-        if cv2.waitKey(25) & 0xFF == ord("q"):
-            cv2.destroyAllWindows()
-            break
-        sleep(0.1) # Attendere un breve momento prima della prossima iterazi
+                # yellow coin
+                if b == 64 and r == 200:
+                    print(f"doge at ({x},{y}): R={r}, G={g}, B={b}")
+                    mouse_click(x + 530, y + 440, wait=0)
+                    break
+
+                # orange coin
+                if b == 33 and r == 231:
+                    print(f"btc at ({x},{y}): R={r}, G={g}, B={b}")
+                    mouse_click(x + 530, y + 440, wait=0)
+                    break
+
+                # grey coin
+                if b == 230 and r == 230:
+                    print(f"ltc at ({x},{y}): R={r}, G={g}, B={b}")
+                    mouse_click(x + 535, y + 440, wait=0)
+                    break
+                
+    print("FINE GRY")
