@@ -1,0 +1,5 @@
+from functions import *
+
+
+
+key = cerca_posizione()
