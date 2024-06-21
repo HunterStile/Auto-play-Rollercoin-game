@@ -87,7 +87,7 @@ def Game2048():
     attesa = 0.1
     secondi = 0
    
-    while secondi < 55:
+    while secondi < 64:
         secondi += 1
         print(secondi)
         freccia(giu)
@@ -117,37 +117,31 @@ def coinclick(a):
 
                 #Fine
                 if b == 228 and r == 3 and g == 225:
-                    print(f"Fine at ({x},{y}): R={r}, G={g}, B={b}")
                     a = 0
                     break
 
                  # eth coin
                 if b == 207 and r == 66 and g==105:
-                    print(f"eth at ({x},{y}): R={r}, G={g}, B={b}")
                     mouse_click(x + 535, y + 440, wait=0)
                     break
 
                 # blue coin
                 if b == 183 and r == 0:
-                    print(f"dash at ({x},{y}): R={r}, G={g}, B={b}")
                     mouse_click(x + 530, y + 440, wait=0)
                     break
 
                 # yellow coin
                 if b == 64 and r == 200:
-                    print(f"doge at ({x},{y}): R={r}, G={g}, B={b}")
                     mouse_click(x + 530, y + 440, wait=0)
                     break
 
                 # orange coin
                 if b == 33 and r == 231:
-                    print(f"btc at ({x},{y}): R={r}, G={g}, B={b}")
                     mouse_click(x + 530, y + 440, wait=0)
                     break
 
                 # grey coin
                 if b == 230 and r == 230:
-                    print(f"ltc at ({x},{y}): R={r}, G={g}, B={b}")
                     mouse_click(x + 535, y + 440, wait=0)
                     break
                 
