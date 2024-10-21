@@ -22,6 +22,7 @@ def coinclick(a):
                 #Fine
                 if b == 228 and r == 3 and g == 225:
                     a = 0
+                    print(f"Fine at ({x},{y}): R={r}, G={g}, B={b}")
                     break
 
                  # eth coin
