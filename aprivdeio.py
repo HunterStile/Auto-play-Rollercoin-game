@@ -2,17 +2,24 @@ import os
 import random
 import subprocess
 
-# Specifica il percorso della cartella con i video
+# Specifica il percorso della cartella principale
 cartella_video = "D:\\temp"
 
-# Ottieni una lista di file nella cartella
-file_video = [f for f in os.listdir(cartella_video) if f.endswith(('.mp4', '.avi', '.mkv'))]
+# Crea una lista per raccogliere tutti i file video
+file_video = []
+
+# Usa os.walk per scorrere la cartella e le sue sottocartelle
+for root, dirs, files in os.walk(cartella_video):
+    for file in files:
+        if file.endswith(('.mp4', '.avi', '.mkv')):
+            # Aggiungi il percorso completo del file video
+            file_video.append(os.path.join(root, file))
 
 # Scegli un video casuale
-video_casuale = random.choice(file_video)
+if file_video:  # Verifica se ci sono video
+    video_casuale = random.choice(file_video)
 
-# Costruisci il percorso completo al file video
-percorso_completo = os.path.join(cartella_video, video_casuale)
-
-# Apri il video con il lettore predefinito
-subprocess.run(["start", percorso_completo], shell=True)
+    # Apri il video con il lettore predefinito
+    subprocess.run(["start", video_casuale], shell=True)
+else:
+    print("Nessun file video trovato.")
