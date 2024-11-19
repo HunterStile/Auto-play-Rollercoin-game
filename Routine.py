@@ -1,19 +1,23 @@
 from functions import *
 
+coinclick_position = (1296,571)
+gioco2048_position = (1270,968)
+
 # Main
 while True:
     #ROUTINE Coinclick
-    pyautogui.scroll(500)    
+    sleep(3)
+    pyautogui.scroll(-100)    
     #Variabili
     cooldown = True
     #Aspetto che  gioco sia pronto
     while cooldown == True:
         print("In attesa che il gioco sia pronto...")
         sleep(10)
-        muovi_mouse(951,575)                                                #Posiziono il mouse su play  
-        screenshot_before = pyautogui.screenshot()                          #Salvo lo screenshot prima del click
         #Inizio del gioco
-        click(951,575)                                                       #Click su play
+        muovi_mouse(coinclick_position[0],coinclick_position[1])                                                #Posiziono il mouse su play
+        screenshot_before = pyautogui.screenshot()                          #Salvo lo screenshot prima del click
+        click(coinclick_position[0],coinclick_position[1])                                                               #Click su play
         sleep(2)
         screenshot_after = pyautogui.screenshot()                           #Salvo lo screenshot dopo il click
         cooldown = verifica_cambio(screenshot_before, screenshot_after)     #Verifico se il click ha causato cambiamenti
@@ -30,17 +34,18 @@ while True:
     pyautogui.press('f5')
 
     #ROUTINE 2048
-    pyautogui.scroll(500)    
+    sleep(3)
+    pyautogui.scroll(-500) 
     #Variabili
     cooldown = True
     #Aspetto che  gioco sia pronto
     while cooldown == True:
         print("In attesa che il gioco sia pronto...")
         sleep(10)
-        muovi_mouse(942, 982)                                                #Posiziono il mouse su play
-        screenshot_before = pyautogui.screenshot()                          #Salvo lo screenshot prima del click
         #Inizio del gioco
-        click(942, 982)                                                     #Click su play
+        muovi_mouse(gioco2048_position[0],gioco2048_position[1])                                                 #Posiziono il mouse su play
+        screenshot_before = pyautogui.screenshot()                          #Salvo lo screenshot prima del click
+        click(gioco2048_position[0],gioco2048_position[1])                                                    #Click su play
         sleep(2)
         screenshot_after = pyautogui.screenshot()                           #Salvo lo screenshot dopo il click
         cooldown = verifica_cambio(screenshot_before, screenshot_after)     #Verifico se il click ha causato cambiamenti
