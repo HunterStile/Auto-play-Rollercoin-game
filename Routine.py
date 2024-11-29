@@ -3,10 +3,11 @@ from functions import *
 class GameAutomation:
     def __init__(self):
         # Posizioni dei giochi
-        self.coinclick_position = (1300, 428)
+        self.coinclick_position = (1300, 420)
         self.memory_position = (600, 1000)
-        self.gioco2048_position = (1300, 835)
+        self.gioco2048_position = (1300, 850)
         self.banner_event = True
+        self.levelmemory = 1
         
         # Coordinate delle celle (come fornito)
 
@@ -14,7 +15,7 @@ class GameAutomation:
         """
         Attende che il gioco sia pronto, con tentativi multipli
         """
-        max_attempts = 3
+        max_attempts = 1
         for attempt in range(max_attempts):
             try:
                 muovi_mouse(game_position[0], game_position[1])
@@ -43,11 +44,20 @@ class GameAutomation:
             [(850, 650), (1000, 650), (1150, 650)],
             [(850, 800), (1000, 800), (1150, 800)]
         ]
+        CELL_COORDS2 = [
+            [(750, 350), (900, 350), (1050, 350), (1200, 350)],
+            [(750, 500), (900, 500), (1050, 500), (1200, 500)],
+            [(750, 650), (900, 650), (1050, 650), (1200, 650)],
+            [(750, 800), (900, 800), (1050, 800), (1200, 800)]
+        ]
         try:
             print("Avvio routine Memory...")
             click(992, 500)  # Click per iniziare (aggiusta le coordinate se necessario)
             sleep(4)
-            memory_game = MemoryBot(CELL_COORDS)
+            if self.levelmemory == 1:
+                memory_game = MemoryBot(CELL_COORDS)
+            if self.levelmemory == 2:
+                memory_game = MemoryBot(CELL_COORDS2)
             memory_game.play_game()
             sleep(3)
             click(967, 645)  # Gain Power
@@ -107,7 +117,7 @@ class GameAutomation:
             if self.wait_game_ready(self.coinclick_position):
                 if self.play_coinclick():
                     pyautogui.press('f5')
-                    sleep(6)
+                    sleep(15)
                     pyautogui.scroll(500)
                     if self.banner_event:
                         pyautogui.scroll(-300)
@@ -117,7 +127,7 @@ class GameAutomation:
             if self.wait_game_ready(self.memory_position):
                 if self.play_memory():
                     pyautogui.press('f5')
-                    sleep(6)
+                    sleep(15)
                     pyautogui.scroll(500)
                     if self.banner_event:
                         pyautogui.scroll(-300)
@@ -127,7 +137,7 @@ class GameAutomation:
             if self.wait_game_ready(self.gioco2048_position):
                 if self.play_2048():
                     pyautogui.press('f5')
-                    sleep(6)
+                    sleep(15)
                     pyautogui.scroll(500)
                     if self.banner_event:
                         pyautogui.scroll(-300)

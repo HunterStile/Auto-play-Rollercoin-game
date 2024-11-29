@@ -226,7 +226,7 @@ class MemoryBot:
             self.found_pairs.add(move1)
             self.found_pairs.add(move2)
         else:
-            sleep(1)  # Attende che le carte si rigirino
+            sleep(0.4)  # Attende che le carte si rigirino
             
         return True
 
@@ -238,6 +238,6 @@ class MemoryBot:
         while True:
             if not self.play_turn():
                 break
-            sleep(1)  # Pausa tra i turni
+            sleep(0.8)  # Pausa tra i turni
         
         print("Gioco completato!")
