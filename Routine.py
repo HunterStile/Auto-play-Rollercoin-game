@@ -1,13 +1,14 @@
 from functions import *
+from Routine_config import GameRoutineConfig
 
 class GameAutomation:
     def __init__(self):
         # Posizioni dei giochi
-        self.coinclick_position = (1300, 420)
-        self.memory_position = (600, 1000)
-        self.gioco2048_position = (1300, 850)
-        self.banner_event = True
-        self.levelmemory = 1
+        self.coinclick_position = GameRoutineConfig.COINCLICK_POSITION
+        self.memory_position = GameRoutineConfig.MEMORY_POSITION
+        self.gioco2048_position = GameRoutineConfig.GIOCO2048_POSITION
+        self.banner_event = GameRoutineConfig.BANNER_EVENT
+        self.levelmemory = GameRoutineConfig.LEVEL_MEMORY
         
         # Coordinate delle celle (come fornito)
 

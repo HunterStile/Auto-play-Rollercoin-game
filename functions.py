@@ -5,6 +5,7 @@ from PIL import ImageGrab
 from PIL import ImageChops
 from typing import List, Tuple
 import random
+import time
 
 # VARIABILI
 giu = 'down'
@@ -231,13 +232,23 @@ class MemoryBot:
         return True
 
     def play_game(self):
-        """Gioca una partita completa."""
+        """Gioca una partita completa con un limite di tempo di 60 secondi."""
         print("Inizia il gioco tra 2 secondi...")
         sleep(2)
         
+        start_time = time.time()
+        game_duration = 60  # 60 secondi
+        
         while True:
+            # Controlla se il tempo è scaduto
+            if time.time() - start_time > game_duration:
+                print("Tempo scaduto! Fine del gioco.")
+                break
+            
+            # Controlla se ci sono ancora mosse disponibili
             if not self.play_turn():
                 break
+            
             sleep(0.8)  # Pausa tra i turni
         
         print("Gioco completato!")
