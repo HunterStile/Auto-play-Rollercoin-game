@@ -11,3 +11,9 @@ class GameRoutineConfig:
     
     # Livello per il gioco Memory
     LEVEL_MEMORY = 1
+
+    GAME_ORDER = [
+        'coinclick',
+        '2048',
+        'memory'
+    ]

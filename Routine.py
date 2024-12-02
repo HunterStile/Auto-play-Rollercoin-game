@@ -114,38 +114,39 @@ class GameAutomation:
             pyautogui.scroll(-300)
             
         while True:
-            # Prova CoinClick
-            if self.wait_game_ready(self.coinclick_position):
-                if self.play_coinclick():
-                    pyautogui.press('f5')
-                    sleep(15)
-                    pyautogui.scroll(500)
-                    if self.banner_event:
-                        pyautogui.scroll(-300)
-                    continue
-
-            # Prova Memory
-            if self.wait_game_ready(self.memory_position):
-                if self.play_memory():
-                    pyautogui.press('f5')
-                    sleep(15)
-                    pyautogui.scroll(500)
-                    if self.banner_event:
-                        pyautogui.scroll(-300)
-                    continue
-
-            # Prova 2048
-            if self.wait_game_ready(self.gioco2048_position):
-                if self.play_2048():
-                    pyautogui.press('f5')
-                    sleep(15)
-                    pyautogui.scroll(500)
-                    if self.banner_event:
-                        pyautogui.scroll(-300)
-                    continue
-
-            print("Nessun gioco disponibile. Attendo e riprovo...")
-            sleep(30)
+            for game in GameRoutineConfig.GAME_ORDER:
+                if game == 'coinclick':
+                    if self.wait_game_ready(self.coinclick_position):
+                        if self.play_coinclick():
+                            pyautogui.press('f5')
+                            sleep(15)
+                            pyautogui.scroll(500)
+                            if self.banner_event:
+                                pyautogui.scroll(-300)
+                            break
+                
+                elif game == 'memory':
+                    if self.wait_game_ready(self.memory_position):
+                        if self.play_memory():
+                            pyautogui.press('f5')
+                            sleep(15)
+                            pyautogui.scroll(500)
+                            if self.banner_event:
+                                pyautogui.scroll(-300)
+                            break
+                
+                elif game == '2048':
+                    if self.wait_game_ready(self.gioco2048_position):
+                        if self.play_2048():
+                            pyautogui.press('f5')
+                            sleep(15)
+                            pyautogui.scroll(500)
+                            if self.banner_event:
+                                pyautogui.scroll(-300)
+                            break
+            else:
+                print("Nessun gioco disponibile. Attendo e riprovo...")
+            
 
 if __name__ == "__main__":
     automation = GameAutomation()
