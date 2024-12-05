@@ -7,6 +7,7 @@ class GameAutomation:
         self.coinclick_position = GameRoutineConfig.COINCLICK_POSITION
         self.memory_position = GameRoutineConfig.MEMORY_POSITION
         self.gioco2048_position = GameRoutineConfig.GIOCO2048_POSITION
+        self.hamsterclimber_position = GameRoutineConfig.HAMSTERCLIMBER_POSITION
         self.banner_event = GameRoutineConfig.BANNER_EVENT
         self.levelmemory = GameRoutineConfig.LEVEL_MEMORY
         
@@ -102,6 +103,23 @@ class GameAutomation:
             print(f"Errore in 2048: {e}")
             return False
 
+    def play_hamsterClimber(self):
+        """
+        Routine per giocare a hamsterClimber
+        """
+        try:
+            print("Avvio routine hamsterClimber...")
+            click(992, 492)  # Click per iniziare
+            sleep(5)
+            hamsterClimber(1)
+            sleep(3)
+            click(967, 645)  # Gain Power
+            sleep(3)
+            return True
+        except Exception as e:
+            print(f"Errore in CoinClick: {e}")
+            return False
+        
     def run_automation(self):
         """
         Routine principale con gestione flessibile dei giochi
@@ -111,41 +129,52 @@ class GameAutomation:
         sleep(1)
         pyautogui.scroll(500)
         if self.banner_event:
-            pyautogui.scroll(-300)
+            pyautogui.scroll(-500)
             
         while True:
-            # Prova CoinClick
-            if self.wait_game_ready(self.coinclick_position):
-                if self.play_coinclick():
-                    pyautogui.press('f5')
-                    sleep(15)
-                    pyautogui.scroll(500)
-                    if self.banner_event:
-                        pyautogui.scroll(-300)
-                    continue
+            for game in GameRoutineConfig.GAME_ORDER:
+                if game == 'coinclick':
+                    if self.wait_game_ready(self.coinclick_position):
+                        if self.play_coinclick():
+                            pyautogui.press('f5')
+                            sleep(15)
+                            pyautogui.scroll(500)
+                            if self.banner_event:
+                                pyautogui.scroll(-500)
+                            break
+                
+                elif game == 'memory':
+                    if self.wait_game_ready(self.memory_position):
+                        if self.play_memory():
+                            pyautogui.press('f5')
+                            sleep(15)
+                            pyautogui.scroll(500)
+                            if self.banner_event:
+                                pyautogui.scroll(-500)
+                            break
+                
+                elif game == '2048':
+                    if self.wait_game_ready(self.gioco2048_position):
+                        if self.play_2048():
+                            pyautogui.press('f5')
+                            sleep(15)
+                            pyautogui.scroll(500)
+                            if self.banner_event:
+                                pyautogui.scroll(-500)
+                            break
 
-            # Prova Memory
-            if self.wait_game_ready(self.memory_position):
-                if self.play_memory():
-                    pyautogui.press('f5')
-                    sleep(15)
-                    pyautogui.scroll(500)
-                    if self.banner_event:
-                        pyautogui.scroll(-300)
-                    continue
-
-            # Prova 2048
-            if self.wait_game_ready(self.gioco2048_position):
-                if self.play_2048():
-                    pyautogui.press('f5')
-                    sleep(15)
-                    pyautogui.scroll(500)
-                    if self.banner_event:
-                        pyautogui.scroll(-300)
-                    continue
-
-            print("Nessun gioco disponibile. Attendo e riprovo...")
-            sleep(30)
+                elif game == 'hamsterclimber':
+                    if self.wait_game_ready(self.hamsterclimber_position):
+                        if self.play_hamsterClimber():
+                            pyautogui.press('f5')
+                            sleep(15)
+                            pyautogui.scroll(500)
+                            if self.banner_event:
+                                pyautogui.scroll(-500)
+                            break
+            else:
+                print("Nessun gioco disponibile. Attendo e riprovo...")
+             
 
 if __name__ == "__main__":
     automation = GameAutomation()

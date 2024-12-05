@@ -1,6 +1,4 @@
-from ast import While
 import pyautogui
-import numpy
 import time
 import keyboard
 from functions import *

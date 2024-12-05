@@ -2,46 +2,45 @@ import pyautogui
 import time
 import keyboard
 
-# Funzione per controllare se i valori RGB rientrano in un determinato range
-def is_green_color(r, g, b):
-    r_range = range(75, 77)    # Range per il rosso (R) R=76, G=194, B=86
-    g_range = range(193, 195) # Range per il verde (G)
-    b_range = range(85,87)    # Range per il blu (B)
-    return (r in r_range) and (g in g_range) and (b in b_range)
-
-def mouse_click(x, y, wait=0.2):
-    pyautogui.click(x, y)
+def space_click(wait=0.0):
+    pyautogui.press('space')
     time.sleep(wait)
 
-def coinclick(a):
+def is_color_in_range(target_color, actual_color, tolerance):
+    return all(abs(tc - ac) <= tolerance for tc, ac in zip(target_color, actual_color))
+
+def hamsterClimber(a):
     print("START GAME")
+    tolerance = 2  
+    target_color = (55, 173, 67) 
+
     while a == 1:
-        # Definisci la regione centrale approssimata (modifica i valori se necessario)
-        pic = pyautogui.screenshot(region=(530, 430, 828, 417))
+        pic = pyautogui.screenshot(region=(575, 390, 828, 417))
         width, height = pic.size
-        for x in range(0, width, 5):
-            for y in range(0, height, 5):
+        found = False
+        
+        for x in range(0, width, 15):
+            for y in range(0, height, 15):
                 r, g, b = pic.getpixel((x, y))
 
-                # Fine del gioco (se necessario)
-                if b == 228 and r == 3 and g == 225:
+                if r == 3 and g == 225 and b == 228:
                     a = 0
                     break
 
-                # Rileva il rettangolo verde R=55, G=173, B=67
-                if is_green_color(r, g, b):
-                    mouse_click(x + 240, y + 150, wait=0)
-                    print(f"Green detected at ({x}, {y}): R={r}, G={g}, B={b}")
-                    time.sleep(1)
+                if is_color_in_range(target_color, (r, g, b), tolerance):
+                    space_click()
+                    found = True
                     break
+            if found:
+                break
 
     print("END GAME")
     start()
 
 def start():
-    print("Premi Enter per iniziare, naciścialo solo quando è in corso il conto alla rovescia")
-    keyboard.wait("enter")
+    print("Press PAGE UP, when the countdown is displayed")
+    keyboard.wait("page up")
     a = 1
-    coinclick(a)
+    hamsterClimber(a)
 
 start()
