@@ -7,6 +7,7 @@ class GameAutomation:
         self.coinclick_position = GameRoutineConfig.COINCLICK_POSITION
         self.memory_position = GameRoutineConfig.MEMORY_POSITION
         self.gioco2048_position = GameRoutineConfig.GIOCO2048_POSITION
+        self.hamsterclimber_position = GameRoutineConfig.HAMSTERCLIMBER_POSITION
         self.banner_event = GameRoutineConfig.BANNER_EVENT
         self.levelmemory = GameRoutineConfig.LEVEL_MEMORY
         
@@ -102,6 +103,23 @@ class GameAutomation:
             print(f"Errore in 2048: {e}")
             return False
 
+    def play_hamsterClimber(self):
+        """
+        Routine per giocare a hamsterClimber
+        """
+        try:
+            print("Avvio routine hamsterClimber...")
+            click(992, 492)  # Click per iniziare
+            sleep(5)
+            hamsterClimber(1)
+            sleep(3)
+            click(967, 645)  # Gain Power
+            sleep(3)
+            return True
+        except Exception as e:
+            print(f"Errore in CoinClick: {e}")
+            return False
+        
     def run_automation(self):
         """
         Routine principale con gestione flessibile dei giochi
@@ -111,7 +129,7 @@ class GameAutomation:
         sleep(1)
         pyautogui.scroll(500)
         if self.banner_event:
-            pyautogui.scroll(-300)
+            pyautogui.scroll(-500)
             
         while True:
             for game in GameRoutineConfig.GAME_ORDER:
@@ -122,7 +140,7 @@ class GameAutomation:
                             sleep(15)
                             pyautogui.scroll(500)
                             if self.banner_event:
-                                pyautogui.scroll(-300)
+                                pyautogui.scroll(-500)
                             break
                 
                 elif game == 'memory':
@@ -132,7 +150,7 @@ class GameAutomation:
                             sleep(15)
                             pyautogui.scroll(500)
                             if self.banner_event:
-                                pyautogui.scroll(-300)
+                                pyautogui.scroll(-500)
                             break
                 
                 elif game == '2048':
@@ -142,11 +160,21 @@ class GameAutomation:
                             sleep(15)
                             pyautogui.scroll(500)
                             if self.banner_event:
-                                pyautogui.scroll(-300)
+                                pyautogui.scroll(-500)
+                            break
+
+                elif game == 'hamsterclimber':
+                    if self.wait_game_ready(self.hamsterclimber_position):
+                        if self.play_hamsterClimber():
+                            pyautogui.press('f5')
+                            sleep(15)
+                            pyautogui.scroll(500)
+                            if self.banner_event:
+                                pyautogui.scroll(-500)
                             break
             else:
                 print("Nessun gioco disponibile. Attendo e riprovo...")
-            
+             
 
 if __name__ == "__main__":
     automation = GameAutomation()
