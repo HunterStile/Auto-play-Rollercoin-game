@@ -129,7 +129,7 @@ class GameAutomation:
         sleep(1)
         pyautogui.scroll(500)
         if self.banner_event:
-            pyautogui.scroll(-500)
+            pyautogui.scroll(-380)
             
         while True:
             for game in GameRoutineConfig.GAME_ORDER:
@@ -140,7 +140,7 @@ class GameAutomation:
                             sleep(15)
                             pyautogui.scroll(500)
                             if self.banner_event:
-                                pyautogui.scroll(-500)
+                                pyautogui.scroll(-380)
                             break
                 
                 elif game == 'memory':
@@ -150,7 +150,7 @@ class GameAutomation:
                             sleep(15)
                             pyautogui.scroll(500)
                             if self.banner_event:
-                                pyautogui.scroll(-500)
+                                pyautogui.scroll(-380)
                             break
                 
                 elif game == '2048':
@@ -160,7 +160,7 @@ class GameAutomation:
                             sleep(15)
                             pyautogui.scroll(500)
                             if self.banner_event:
-                                pyautogui.scroll(-500)
+                                pyautogui.scroll(-380)
                             break
 
                 elif game == 'hamsterclimber':
@@ -170,7 +170,7 @@ class GameAutomation:
                             sleep(15)
                             pyautogui.scroll(500)
                             if self.banner_event:
-                                pyautogui.scroll(-500)
+                                pyautogui.scroll(-380)
                             break
             else:
                 print("Nessun gioco disponibile. Attendo e riprovo...")
