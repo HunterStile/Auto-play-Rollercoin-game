@@ -51,8 +51,8 @@ def coinclick(a):
     start()
 
 def start():
-    print("Premi Enter per iniziare, solo quando è in corso il conto alla rovescia")
-    keyboard.wait("enter")
+    print("Press PAGE UP, when the countdown is displayed")
+    keyboard.wait("page up")
     a = 1
     coinclick(a)
 
