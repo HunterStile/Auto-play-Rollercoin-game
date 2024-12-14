@@ -10,6 +10,7 @@ class GameAutomation:
         self.hamsterclimber_position = GameRoutineConfig.HAMSTERCLIMBER_POSITION
         self.banner_event = GameRoutineConfig.BANNER_EVENT
         self.levelmemory = GameRoutineConfig.LEVEL_MEMORY
+        self.scroll_down = GameRoutineConfig.scroll_down
         
         # Coordinate delle celle (come fornito)
 
@@ -129,7 +130,7 @@ class GameAutomation:
         sleep(1)
         pyautogui.scroll(500)
         if self.banner_event:
-            pyautogui.scroll(-500)
+            pyautogui.scroll(self.scroll_down)
             
         while True:
             for game in GameRoutineConfig.GAME_ORDER:
@@ -140,7 +141,7 @@ class GameAutomation:
                             sleep(15)
                             pyautogui.scroll(500)
                             if self.banner_event:
-                                pyautogui.scroll(-500)
+                                pyautogui.scroll(self.scroll_down)
                             break
                 
                 elif game == 'memory':
@@ -150,7 +151,7 @@ class GameAutomation:
                             sleep(15)
                             pyautogui.scroll(500)
                             if self.banner_event:
-                                pyautogui.scroll(-500)
+                                pyautogui.scroll(self.scroll_down)
                             break
                 
                 elif game == '2048':
@@ -160,7 +161,7 @@ class GameAutomation:
                             sleep(15)
                             pyautogui.scroll(500)
                             if self.banner_event:
-                                pyautogui.scroll(-500)
+                                pyautogui.scroll(self.scroll_down)
                             break
 
                 elif game == 'hamsterclimber':
@@ -170,7 +171,7 @@ class GameAutomation:
                             sleep(15)
                             pyautogui.scroll(500)
                             if self.banner_event:
-                                pyautogui.scroll(-500)
+                                pyautogui.scroll(self.scroll_down)
                             break
             else:
                 print("Nessun gioco disponibile. Attendo e riprovo...")

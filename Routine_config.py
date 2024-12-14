@@ -2,11 +2,12 @@
 
 class GameRoutineConfig:
     # Posizioni dei giochi
-    COINCLICK_POSITION = (1295, 244)
+    COINCLICK_POSITION = (1300, 244)
     MEMORY_POSITION = (600, 817)
     GIOCO2048_POSITION = (1300, 655)
-    HAMSTERCLIMBER_POSITION = (948,970)
+    HAMSTERCLIMBER_POSITION = (600,970)
     
+    scroll_down = -390
     # Flag per il banner dell'evento
     BANNER_EVENT = True
     
