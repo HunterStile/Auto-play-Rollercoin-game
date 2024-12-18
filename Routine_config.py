@@ -7,7 +7,7 @@ class GameRoutineConfig:
     GIOCO2048_POSITION = (1300, 655)
     HAMSTERCLIMBER_POSITION = (600,970)
     
-    scroll_down = -390
+    scroll_down = -480 # 390 degault
     # Flag per il banner dell'evento
     BANNER_EVENT = True
     
