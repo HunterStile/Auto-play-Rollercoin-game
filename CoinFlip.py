@@ -1,11 +1,11 @@
 from functions import *
-
+import keyboard
 # Coordinate delle celle (come fornito)
 CELL_COORDS = [
-    [(850, 350), (1000, 350), (1150, 350)],
-    [(850, 500), (1000, 500), (1150, 500)],
-    [(850, 650), (1000, 650), (1150, 650)],
-    [(850, 800), (1000, 800), (1150, 800)]
+    [(835, 460), (986, 460), (1135, 460)],
+    [(835, 620), (986, 620), (1135, 620)],
+    [(835, 770), (986, 770), (1135, 770)],
+    [(835, 910), (986, 910), (1135, 910)]
 ]
 
 CELL_COORDS2 = [
@@ -19,5 +19,10 @@ def main():
     bot = MemoryBot(CELL_COORDS)
     bot.play_game()
 
-if __name__ == "__main__":
-    main()
+def start():
+    while True:
+        print("Press PAGE UP, when the cell cords is displayed")
+        keyboard.wait("page up")
+        main()
+
+start()

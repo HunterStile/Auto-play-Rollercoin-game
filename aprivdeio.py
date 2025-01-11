@@ -40,7 +40,7 @@ def riproduci_video_casuale(tutti_video, video_riprodotti):
     return video_casuale
 
 def main():
-    cartella_video = "D:\\temp"
+    cartella_video = "D:\\temp" #"D:\\temp\\11OO"
     tutti_video = trova_video(cartella_video)
     
     if not tutti_video:
