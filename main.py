@@ -195,7 +195,7 @@ class GameConfigGUI:
             
             try:
                 # Start the bot process
-                self.bot_process = subprocess.Popen([sys.executable, "bot_main.py"])
+                self.bot_process = subprocess.Popen([sys.executable, "Routine.py"])
                 self.status_label.config(text="Bot Status: Running")
                 self.bot_button.config(text="Stop Bot")
             except Exception as e:
