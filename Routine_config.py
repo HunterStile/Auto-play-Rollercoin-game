@@ -10,6 +10,6 @@ class GameRoutineConfig:
     BANNER_EVENT = True
     
     # Livello per il gioco Memory
-    LEVEL_MEMORY = 1
+    LEVEL_MEMORY = 2
 
-    GAME_ORDER = ['hamsterclimber', 'memory']
+    GAME_ORDER = ['coinclick', 'memory', '2048', 'hamsterclimber']

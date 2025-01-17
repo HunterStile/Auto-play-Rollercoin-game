@@ -1,3 +1,5 @@
 # File di cache Python
 *.pyc
 __pycache__/
+
+game_config.py

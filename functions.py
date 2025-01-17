@@ -128,7 +128,7 @@ def coinclick(a):
                     break
 
                 # blue coin
-                if b == 183 and r == 0:
+                if b == 184 and r == 0:
                     mouse_click(x + 530, y + 440, wait=0)
                     break
 
@@ -138,7 +138,7 @@ def coinclick(a):
                     break
 
                 # orange coin
-                if b == 33 and r == 231:
+                if b == 32 and r == 231:
                     mouse_click(x + 530, y + 440, wait=0)
                     break
 
