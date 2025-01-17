@@ -2,4 +2,4 @@
 *.pyc
 __pycache__/
 
-game_config.py
+game_config.json
