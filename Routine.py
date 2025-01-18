@@ -53,6 +53,13 @@ class GameAutomation:
             [(750, 650), (900, 650), (1050, 650), (1200, 650)],
             [(750, 800), (900, 800), (1050, 800), (1200, 800)]
         ]
+        CELL_COORDS3 = [
+            [(680, 360), (830, 360), (980, 360), (1130, 360), (1280, 360)],
+            [(680, 520), (830, 520), (980, 520), (1130, 520), (1280, 520)],
+            [(680, 670), (830, 670), (980, 670), (1130, 670), (1280, 670)],
+            [(680, 820), (830, 820), (980, 820), (1130, 820), (1280, 820)],
+            [(680, 970), (830, 970), (980, 970), (1130, 970), (1280, 970)]
+        ]
         try:
             print("Avvio routine Memory...")
             click(992, 500)  # Click per iniziare (aggiusta le coordinate se necessario)
@@ -61,6 +68,8 @@ class GameAutomation:
                 memory_game = MemoryBot(CELL_COORDS)
             if self.levelmemory == 2:
                 memory_game = MemoryBot(CELL_COORDS2)
+            if self.levelmemory == 3:
+                memory_game = MemoryBot(CELL_COORDS3)
             memory_game.play_game()
             sleep(3)
             click(967, 645)  # Gain Power
