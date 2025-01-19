@@ -12,4 +12,4 @@ class GameRoutineConfig:
     # Livello per il gioco Memory
     LEVEL_MEMORY = 3
 
-    GAME_ORDER = ['memory']
+    GAME_ORDER = ['hamsterclimber']
