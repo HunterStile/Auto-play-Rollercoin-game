@@ -1,4 +1,4 @@
-# Automation-Bots
+# Automation-Bots - PATCH 1.4.0
 
 ## Descrizione
 Automation-Bots è un progetto che include bot per automatizzare le attività sui giochi "CoinClick" e "2048". Questi bot sono progettati per eseguire azioni specifiche nel gioco in modo automatizzato.
