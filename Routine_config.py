@@ -21,4 +21,4 @@ class GameRoutineConfig:
     # Livello per il gioco Memory
     LEVEL_MEMORY = 2
 
-    GAME_ORDER = ['coinclick', 'hamsterclimber', 'coinflip', '2048coins']
+    GAME_ORDER = ['coinclick', 'hamsterclimber']

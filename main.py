@@ -88,6 +88,12 @@ class GameConfigGUI:
         # Game order
         self.game_order = []
         self.available_games = ['coinclick', 'memory', '2048', 'hamsterclimber']
+        self.game_display_names = {
+            'coinclick': 'CoinClick',
+            'memory': 'Coinflip',
+            '2048': '2048Coins',
+            'hamsterclimber': 'Hamster Climber'
+        }
         self.game_vars = {game: tk.BooleanVar(value=False) for game in self.available_games}
         self.game_order_vars = []
     
@@ -177,7 +183,7 @@ class GameConfigGUI:
             # Checkbox for enabling the game
             ttk.Checkbutton(
                 game_frame, 
-                text=game.capitalize(),
+                text=self.game_display_names[game],
                 variable=self.game_vars[game]
             ).pack(side=tk.LEFT)
             

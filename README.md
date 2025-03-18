@@ -10,14 +10,14 @@ The bot supports the following Rollercoin mini-games:
    - A simple clicking game
    - Requires precision and speed
 
-2. **Memory**
+2. **Coinflip**
    - Card memory game
    - Supports 3 difficulty levels (1-3)
    - Level 1: 3x4 grid
    - Level 2: 4x4 grid
    - Level 3: 5x4 grid
 
-3. **2048**
+3. **2048Coins**
    - Classic 2048 game
    - Uses arrow keys to combine numbers
 
