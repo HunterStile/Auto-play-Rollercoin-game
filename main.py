@@ -66,6 +66,20 @@ class GameConfigGUI:
         self.hamster_x = tk.StringVar(value="600")
         self.hamster_y = tk.StringVar(value="970")
         
+        # Start button positions
+        self.coinclick_start_x = tk.StringVar(value="992")
+        self.coinclick_start_y = tk.StringVar(value="438")
+        self.memory_start_x = tk.StringVar(value="992")
+        self.memory_start_y = tk.StringVar(value="500")
+        self.game2048_start_x = tk.StringVar(value="992")
+        self.game2048_start_y = tk.StringVar(value="504")
+        self.hamster_start_x = tk.StringVar(value="992")
+        self.hamster_start_y = tk.StringVar(value="492")
+        
+        # Gain Power position
+        self.gain_power_x = tk.StringVar(value="967")
+        self.gain_power_y = tk.StringVar(value="645")
+        
         # Other settings
         self.scroll_down = tk.StringVar(value="-390")
         self.banner_event = tk.BooleanVar(value=True)
@@ -86,24 +100,67 @@ class GameConfigGUI:
         ttk.Label(pos_frame, text="Coinclick Position:").grid(row=0, column=0, sticky=tk.W)
         ttk.Entry(pos_frame, textvariable=self.coinclick_x, width=8).grid(row=0, column=1, padx=5)
         ttk.Entry(pos_frame, textvariable=self.coinclick_y, width=8).grid(row=0, column=2)
+        ttk.Button(pos_frame, text="Find", command=lambda: self.find_position(self.coinclick_x, self.coinclick_y)).grid(row=0, column=3, padx=5)
         
         # Memory position
         ttk.Label(pos_frame, text="Memory Position:").grid(row=1, column=0, sticky=tk.W)
         ttk.Entry(pos_frame, textvariable=self.memory_x, width=8).grid(row=1, column=1, padx=5)
         ttk.Entry(pos_frame, textvariable=self.memory_y, width=8).grid(row=1, column=2)
+        ttk.Button(pos_frame, text="Find", command=lambda: self.find_position(self.memory_x, self.memory_y)).grid(row=1, column=3, padx=5)
         
         # 2048 position
         ttk.Label(pos_frame, text="2048 Position:").grid(row=2, column=0, sticky=tk.W)
         ttk.Entry(pos_frame, textvariable=self.game2048_x, width=8).grid(row=2, column=1, padx=5)
         ttk.Entry(pos_frame, textvariable=self.game2048_y, width=8).grid(row=2, column=2)
+        ttk.Button(pos_frame, text="Find", command=lambda: self.find_position(self.game2048_x, self.game2048_y)).grid(row=2, column=3, padx=5)
         
         # Hamster Climber position
         ttk.Label(pos_frame, text="Hamster Climber Position:").grid(row=3, column=0, sticky=tk.W)
         ttk.Entry(pos_frame, textvariable=self.hamster_x, width=8).grid(row=3, column=1, padx=5)
         ttk.Entry(pos_frame, textvariable=self.hamster_y, width=8).grid(row=3, column=2)
+        ttk.Button(pos_frame, text="Find", command=lambda: self.find_position(self.hamster_x, self.hamster_y)).grid(row=3, column=3, padx=5)
+        
+        # Start button positions frame
+        start_frame = ttk.LabelFrame(self.scrollable_frame, text="Start Button Positions", padding=10)
+        start_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        # Coinclick start
+        ttk.Label(start_frame, text="Coinclick Start:").grid(row=0, column=0, sticky=tk.W)
+        ttk.Entry(start_frame, textvariable=self.coinclick_start_x, width=8).grid(row=0, column=1, padx=5)
+        ttk.Entry(start_frame, textvariable=self.coinclick_start_y, width=8).grid(row=0, column=2)
+        ttk.Button(start_frame, text="Find", command=lambda: self.find_position(self.coinclick_start_x, self.coinclick_start_y)).grid(row=0, column=3, padx=5)
+        
+        # Memory start
+        ttk.Label(start_frame, text="Memory Start:").grid(row=1, column=0, sticky=tk.W)
+        ttk.Entry(start_frame, textvariable=self.memory_start_x, width=8).grid(row=1, column=1, padx=5)
+        ttk.Entry(start_frame, textvariable=self.memory_start_y, width=8).grid(row=1, column=2)
+        ttk.Button(start_frame, text="Find", command=lambda: self.find_position(self.memory_start_x, self.memory_start_y)).grid(row=1, column=3, padx=5)
+        
+        # 2048 start
+        ttk.Label(start_frame, text="2048 Start:").grid(row=2, column=0, sticky=tk.W)
+        ttk.Entry(start_frame, textvariable=self.game2048_start_x, width=8).grid(row=2, column=1, padx=5)
+        ttk.Entry(start_frame, textvariable=self.game2048_start_y, width=8).grid(row=2, column=2)
+        ttk.Button(start_frame, text="Find", command=lambda: self.find_position(self.game2048_start_x, self.game2048_start_y)).grid(row=2, column=3, padx=5)
+        
+        # Hamster Climber start
+        ttk.Label(start_frame, text="Hamster Climber Start:").grid(row=3, column=0, sticky=tk.W)
+        ttk.Entry(start_frame, textvariable=self.hamster_start_x, width=8).grid(row=3, column=1, padx=5)
+        ttk.Entry(start_frame, textvariable=self.hamster_start_y, width=8).grid(row=3, column=2)
+        ttk.Button(start_frame, text="Find", command=lambda: self.find_position(self.hamster_start_x, self.hamster_start_y)).grid(row=3, column=3, padx=5)
+        
+        # Gain Power position frame
+        gain_frame = ttk.LabelFrame(self.scrollable_frame, text="Gain Power Position", padding=10)
+        gain_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        ttk.Label(gain_frame, text="Gain Power:").grid(row=0, column=0, sticky=tk.W)
+        ttk.Entry(gain_frame, textvariable=self.gain_power_x, width=8).grid(row=0, column=1, padx=5)
+        ttk.Entry(gain_frame, textvariable=self.gain_power_y, width=8).grid(row=0, column=2)
+        ttk.Button(gain_frame, text="Find", command=lambda: self.find_position(self.gain_power_x, self.gain_power_y)).grid(row=0, column=3, padx=5)
         
         for i in range(4):
             pos_frame.grid_rowconfigure(i, pad=5)
+            start_frame.grid_rowconfigure(i, pad=5)
+        gain_frame.grid_rowconfigure(0, pad=5)
     
     def create_game_order_settings(self):
         # Game order frame
@@ -231,55 +288,117 @@ class GameConfigGUI:
             "MEMORY_POSITION": (int(self.memory_x.get()), int(self.memory_y.get())),
             "GIOCO2048_POSITION": (int(self.game2048_x.get()), int(self.game2048_y.get())),
             "HAMSTERCLIMBER_POSITION": (int(self.hamster_x.get()), int(self.hamster_y.get())),
+            "COINCLICK_START": (int(self.coinclick_start_x.get()), int(self.coinclick_start_y.get())),
+            "MEMORY_START": (int(self.memory_start_x.get()), int(self.memory_start_y.get())),
+            "GIOCO2048_START": (int(self.game2048_start_x.get()), int(self.game2048_start_y.get())),
+            "HAMSTERCLIMBER_START": (int(self.hamster_start_x.get()), int(self.hamster_start_y.get())),
+            "GAIN_POWER_POSITION": (int(self.gain_power_x.get()), int(self.gain_power_y.get())),
             "scroll_down": int(self.scroll_down.get()),
             "BANNER_EVENT": self.banner_event.get(),
             "LEVEL_MEMORY": int(self.level_memory.get()),
             "GAME_ORDER": self.get_game_order()
         }
         
-        # Save to JSON file
-        with open('game_config.json', 'w') as f:
-            json.dump(config, f, indent=4)
-            
+        # Try to save to JSON file in the current directory
+        try:
+            with open('game_config.json', 'w') as f:
+                json.dump(config, f, indent=4)
+        except PermissionError:
+            # If permission denied, try to save in the user's home directory
+            try:
+                home_dir = os.path.expanduser("~")
+                config_path = os.path.join(home_dir, "rollercoin_game_config.json")
+                with open(config_path, 'w') as f:
+                    json.dump(config, f, indent=4)
+                print(f"Configuration saved to: {config_path}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to save configuration: {str(e)}")
+                return
+        
         # Generate Python config file
-        self.generate_config_file(config)
+        try:
+            self.generate_config_file(config)
+        except PermissionError:
+            # If permission denied, try to save in the user's home directory
+            try:
+                home_dir = os.path.expanduser("~")
+                config_path = os.path.join(home_dir, "Routine_config.py")
+                self.generate_config_file(config, config_path)
+                print(f"Configuration saved to: {config_path}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to save configuration: {str(e)}")
+                return
     
     def load_config(self):
         try:
-            with open('game_config.json', 'r') as f:
-                config = json.load(f)
+            # Try to load from current directory first
+            config_path = 'game_config.json'
+            if not os.path.exists(config_path):
+                # If not found, try the home directory
+                home_dir = os.path.expanduser("~")
+                config_path = os.path.join(home_dir, "rollercoin_game_config.json")
             
-            # Update position values
-            self.coinclick_x.set(str(config["COINCLICK_POSITION"][0]))
-            self.coinclick_y.set(str(config["COINCLICK_POSITION"][1]))
-            self.memory_x.set(str(config["MEMORY_POSITION"][0]))
-            self.memory_y.set(str(config["MEMORY_POSITION"][1]))
-            self.game2048_x.set(str(config["GIOCO2048_POSITION"][0]))
-            self.game2048_y.set(str(config["GIOCO2048_POSITION"][1]))
-            self.hamster_x.set(str(config["HAMSTERCLIMBER_POSITION"][0]))
-            self.hamster_y.set(str(config["HAMSTERCLIMBER_POSITION"][1]))
-            
-            # Update other settings
-            self.scroll_down.set(str(config["scroll_down"]))
-            self.banner_event.set(config["BANNER_EVENT"])
-            self.level_memory.set(str(config["LEVEL_MEMORY"]))
-            
-            # Update game order
-            for game in self.available_games:
-                self.game_vars[game].set(game in config["GAME_ORDER"])
-                if game in config["GAME_ORDER"]:
-                    idx = config["GAME_ORDER"].index(game)
-                    self.game_order_vars[self.available_games.index(game)].set(str(idx + 1))
-        except FileNotFoundError:
-            print("No existing configuration file found. Using default values.")
+            if os.path.exists(config_path):
+                with open(config_path, 'r') as f:
+                    config = json.load(f)
+                
+                # Update position values
+                self.coinclick_x.set(str(config["COINCLICK_POSITION"][0]))
+                self.coinclick_y.set(str(config["COINCLICK_POSITION"][1]))
+                self.memory_x.set(str(config["MEMORY_POSITION"][0]))
+                self.memory_y.set(str(config["MEMORY_POSITION"][1]))
+                self.game2048_x.set(str(config["GIOCO2048_POSITION"][0]))
+                self.game2048_y.set(str(config["GIOCO2048_POSITION"][1]))
+                self.hamster_x.set(str(config["HAMSTERCLIMBER_POSITION"][0]))
+                self.hamster_y.set(str(config["HAMSTERCLIMBER_POSITION"][1]))
+                
+                # Update start button positions
+                self.coinclick_start_x.set(str(config["COINCLICK_START"][0]))
+                self.coinclick_start_y.set(str(config["COINCLICK_START"][1]))
+                self.memory_start_x.set(str(config["MEMORY_START"][0]))
+                self.memory_start_y.set(str(config["MEMORY_START"][1]))
+                self.game2048_start_x.set(str(config["GIOCO2048_START"][0]))
+                self.game2048_start_y.set(str(config["GIOCO2048_START"][1]))
+                self.hamster_start_x.set(str(config["HAMSTERCLIMBER_START"][0]))
+                self.hamster_start_y.set(str(config["HAMSTERCLIMBER_START"][1]))
+                
+                # Update Gain Power position
+                self.gain_power_x.set(str(config["GAIN_POWER_POSITION"][0]))
+                self.gain_power_y.set(str(config["GAIN_POWER_POSITION"][1]))
+                
+                # Update other settings
+                self.scroll_down.set(str(config["scroll_down"]))
+                self.banner_event.set(config["BANNER_EVENT"])
+                self.level_memory.set(str(config["LEVEL_MEMORY"]))
+                
+                # Update game order
+                for game in self.available_games:
+                    self.game_vars[game].set(game in config["GAME_ORDER"])
+                    if game in config["GAME_ORDER"]:
+                        idx = config["GAME_ORDER"].index(game)
+                        self.game_order_vars[self.available_games.index(game)].set(str(idx + 1))
+            else:
+                print("No existing configuration file found. Using default values.")
+        except Exception as e:
+            print(f"Error loading configuration: {str(e)}")
+            print("Using default values.")
     
-    def generate_config_file(self, config):
+    def generate_config_file(self, config, file_path='Routine_config.py'):
         config_content = """class GameRoutineConfig:
     # Posizioni dei giochi
     COINCLICK_POSITION = {coinclick}
     MEMORY_POSITION = {memory}
     GIOCO2048_POSITION = {game2048}
     HAMSTERCLIMBER_POSITION = {hamster}
+    
+    # Posizioni dei pulsanti start
+    COINCLICK_START = {coinclick_start}
+    MEMORY_START = {memory_start}
+    GIOCO2048_START = {game2048_start}
+    HAMSTERCLIMBER_START = {hamster_start}
+    
+    # Posizione Gain Power
+    GAIN_POWER_POSITION = {gain_power}
     
     scroll_down = {scroll}  # 390 default #495 col banner
     # Flag per il banner dell'evento
@@ -294,14 +413,31 @@ class GameConfigGUI:
             memory=config["MEMORY_POSITION"],
             game2048=config["GIOCO2048_POSITION"],
             hamster=config["HAMSTERCLIMBER_POSITION"],
+            coinclick_start=config["COINCLICK_START"],
+            memory_start=config["MEMORY_START"],
+            game2048_start=config["GIOCO2048_START"],
+            hamster_start=config["HAMSTERCLIMBER_START"],
+            gain_power=config["GAIN_POWER_POSITION"],
             scroll=config["scroll_down"],
             banner=config["BANNER_EVENT"],
             memory_level=config["LEVEL_MEMORY"],
             game_order=config["GAME_ORDER"]
         )
         
-        with open('Routine_config.py', 'w') as f:
+        with open(file_path, 'w') as f:
             f.write(config_content)
+
+    def find_position(self, x_var, y_var):
+        """Find mouse position and update the given variables"""
+        from cerca_posizione import find_position
+        try:
+            scroll_value = int(self.scroll_down.get())
+        except ValueError:
+            scroll_value = -496  # Default value if invalid
+        pos = find_position(scroll_value)
+        if pos:
+            x_var.set(str(pos[0]))
+            y_var.set(str(pos[1]))
 
 if __name__ == "__main__":
     app = GameConfigGUI()

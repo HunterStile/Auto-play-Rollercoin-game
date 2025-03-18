@@ -8,11 +8,19 @@ class GameAutomation:
         self.memory_position = GameRoutineConfig.MEMORY_POSITION
         self.gioco2048_position = GameRoutineConfig.GIOCO2048_POSITION
         self.hamsterclimber_position = GameRoutineConfig.HAMSTERCLIMBER_POSITION
+        
+        # Posizioni dei pulsanti start
+        self.coinclick_start = GameRoutineConfig.COINCLICK_START
+        self.memory_start = GameRoutineConfig.MEMORY_START
+        self.game2048_start = GameRoutineConfig.GIOCO2048_START
+        self.hamsterclimber_start = GameRoutineConfig.HAMSTERCLIMBER_START
+        
+        # Posizione Gain Power
+        self.gain_power_position = GameRoutineConfig.GAIN_POWER_POSITION
+        
         self.banner_event = GameRoutineConfig.BANNER_EVENT
         self.levelmemory = GameRoutineConfig.LEVEL_MEMORY
         self.scroll_down = GameRoutineConfig.scroll_down
-        
-        # Coordinate delle celle (come fornito)
 
     def wait_game_ready(self, game_position):
         """
@@ -61,7 +69,7 @@ class GameAutomation:
         ]
         try:
             print("Avvio routine Memory...")
-            click(992, 500)  # Click per iniziare (aggiusta le coordinate se necessario)
+            click(self.memory_start[0], self.memory_start[1])  # Click per iniziare
             sleep(4)
             if self.levelmemory == 1:
                 memory_game = MemoryBot(CELL_COORDS)
@@ -71,7 +79,7 @@ class GameAutomation:
                 memory_game = MemoryBot(CELL_COORDS3)
             memory_game.play_game()
             sleep(3)
-            click(967, 645)  # Gain Power
+            click(self.gain_power_position[0], self.gain_power_position[1])  # Gain Power
             sleep(3)
             return True
         except Exception as e:
@@ -84,11 +92,11 @@ class GameAutomation:
         """
         try:
             print("Avvio routine CoinClick...")
-            click(992, 438)  # Click per iniziare
+            click(self.coinclick_start[0], self.coinclick_start[1])  # Click per iniziare
             sleep(5)
             coinclick(1)
             sleep(3)
-            click(967, 645)  # Gain Power
+            click(self.gain_power_position[0], self.gain_power_position[1])  # Gain Power
             sleep(3)
             return True
         except Exception as e:
@@ -101,11 +109,11 @@ class GameAutomation:
         """
         try:
             print("Avvio routine 2048...")
-            click(992, 504)  # Click per iniziare
+            click(self.game2048_start[0], self.game2048_start[1])  # Click per iniziare
             sleep(4)
             Game2048()
             sleep(3)
-            click(967, 645)  # Gain Power
+            click(self.gain_power_position[0], self.gain_power_position[1])  # Gain Power
             sleep(3)
             return True
         except Exception as e:
@@ -118,11 +126,11 @@ class GameAutomation:
         """
         try:
             print("Avvio routine hamsterClimber...")
-            click(992, 492)  # Click per iniziare
+            click(self.hamsterclimber_start[0], self.hamsterclimber_start[1])  # Click per iniziare
             sleep(5)
             hamsterClimber(1)
             sleep(3)
-            click(967, 645)  # Gain Power
+            click(self.gain_power_position[0], self.gain_power_position[1])  # Gain Power
             sleep(3)
             return True
         except Exception as e:
