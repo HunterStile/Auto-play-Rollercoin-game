@@ -1,3 +1,26 @@
+# Automation-Bots
+
+## Descrizione
+Automation-Bots è un progetto che include bot per automatizzare le attività sui giochi "CoinClick" e "2048". Questi bot sono progettati per eseguire azioni specifiche nel gioco in modo automatizzato.
+
+## Funzionalità
+- **CoinClick Bot**: Automatizza il clic sui pulsanti e gestisce le risorse nel gioco CoinClick.
+- **2048 Bot**: Automatizza le mosse nel gioco 2048 per cercare di ottenere il punteggio più alto possibile.
+- **Coin-Flip Bot**: Automatizza il gioco di memoria Coin-Flip, supportando 3 livelli di difficoltà (1-3) con griglie di dimensioni diverse.
+- **Hamster Climber Bot**: Automatizza il gioco del criceto che salta, gestendo i tempi e i movimenti per massimizzare il punteggio.
+
+## Requisiti di Sistema
+- Python 3.7 o versione successiva
+- Modulo Selenium per l'automazione del browser (per CoinClick)
+- Modulo PyAutoGUI per l'automazione del mouse e della tastiera (per 2048)
+- Connessione Internet stabile (per CoinClick)
+
+
+## Installazione
+1. Clona il repository da GitHub:
+   ```bash
+   git clone https://github.com/tuonome/Automation-Bots.git
+=======
 # Auto-play Rollercoin Game Bot
 
 A bot to automate Rollercoin mining through mini-games.
@@ -10,14 +33,14 @@ The bot supports the following Rollercoin mini-games:
    - A simple clicking game
    - Requires precision and speed
 
-2. **Coinflip**
+2. **Coin-Flip**
    - Card memory game
    - Supports 3 difficulty levels (1-3)
    - Level 1: 3x4 grid
    - Level 2: 4x4 grid
    - Level 3: 5x4 grid
 
-3. **2048Coins**
+3. **2048 Coins**
    - Classic 2048 game
    - Uses arrow keys to combine numbers
 
@@ -56,7 +79,7 @@ python main.py
    - Start button positions (where to click to start each game)
    - Gain Power button position
    - Game execution order
-   - Memory difficulty level
+   - Coin-Flip difficulty level
    - Scroll value (default: -390)
    - Banner event option
 
@@ -108,4 +131,4 @@ Contributions and suggestions are welcome! To contribute:
 
 ## License
 
-This project is licensed under the MIT License - see the `LICENSE` file for details. 
+This project is licensed under the MIT License - see the `LICENSE` file for details.
