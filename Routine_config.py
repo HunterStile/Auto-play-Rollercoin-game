@@ -7,7 +7,7 @@ class GameRoutineConfig:
     
     # Posizioni dei pulsanti start
     COINCLICK_START = (984, 395)
-    MEMORY_START = (989, 450)
+    MEMORY_START = (989, 452)
     GIOCO2048_START = (990, 450)
     HAMSTERCLIMBER_START = (992, 449)
     
@@ -21,4 +21,4 @@ class GameRoutineConfig:
     # Livello per il gioco Memory
     LEVEL_MEMORY = 2
 
-    GAME_ORDER = ['coinclick', 'hamsterclimber', '2048', 'memory']
+    GAME_ORDER = ['coinclick', 'hamsterclimber', 'coinflip', '2048coins']
