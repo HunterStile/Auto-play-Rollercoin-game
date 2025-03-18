@@ -1,7 +1,7 @@
 # Automation-Bots - PATCH 1.4.0
 
 ## Descrizione
-Automation-Bots è un progetto che include bot per automatizzare le attività sui giochi "CoinClick" e "2048". Questi bot sono progettati per eseguire azioni specifiche nel gioco in modo automatizzato.
+Automation-Bots è un progetto che include bot per automatizzare le attività sui giochi "CoinClick" , "2048Coins" , "HamsterClimber" e "CoinFlip". Questi bot sono progettati per eseguire azioni specifiche nel gioco in modo automatizzato.
 
 ## Funzionalità
 - **CoinClick Bot**: Automatizza il clic sui pulsanti e gestisce le risorse nel gioco CoinClick.
@@ -19,7 +19,7 @@ Automation-Bots è un progetto che include bot per automatizzare le attività su
 ## Installazione
 1. Clona il repository da GitHub:
    ```bash
-   git clone https://github.com/tuonome/Automation-Bots.git
+   git clone https://github.com/HunterStile/Auto-play-Rollercoin-game.git
 =======
 # Auto-play Rollercoin Game Bot
 
@@ -58,7 +58,7 @@ The bot supports the following Rollercoin mini-games:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/Auto-play-Rollercoin-game.git
+git clone https://github.com/HunterStile/Auto-play-Rollercoin-game.git
 cd Auto-play-Rollercoin-game
 ```
 
