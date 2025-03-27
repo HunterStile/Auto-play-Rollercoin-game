@@ -96,7 +96,7 @@ class GameAutomation:
         try:
             print("Avvio routine CoinClick...")
             click(self.coinclick_start[0], self.coinclick_start[1])  # Click per iniziare
-            sleep(5)
+            sleep(3)
             coinclick(1)
             sleep(3)
             click(self.gain_power_position[0], self.gain_power_position[1])  # Gain Power
@@ -130,7 +130,7 @@ class GameAutomation:
         try:
             print("Avvio routine hamsterClimber...")
             click(self.hamsterclimber_start[0], self.hamsterclimber_start[1])  # Click per iniziare
-            sleep(5)
+            sleep(3)
             hamsterClimber(1)
             sleep(3)
             click(self.gain_power_position[0], self.gain_power_position[1])  # Gain Power
