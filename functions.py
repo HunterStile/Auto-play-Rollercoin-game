@@ -70,7 +70,7 @@ def verifica_cambio(screenshot_before, screenshot_after):
     similarity = image_similarity(screenshot_before,screenshot_after)
     print("Similarità: ", similarity)
     
-    if  similarity > 6 :
+    if  similarity > 20 :
         print("Le immagini sono diverse, l'azione ha causato cambiamenti significativi.")
         return False
     else:
