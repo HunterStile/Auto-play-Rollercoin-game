@@ -65,6 +65,8 @@ class GameConfigGUI:
         self.game2048_y = tk.StringVar(value="673")
         self.hamster_x = tk.StringVar(value="600")
         self.hamster_y = tk.StringVar(value="970")
+        self.coinmatch_x = tk.StringVar(value="960")  # Default position for CoinMatch
+        self.coinmatch_y = tk.StringVar(value="400")
         
         # Start button positions
         self.coinclick_start_x = tk.StringVar(value="992")
@@ -75,6 +77,8 @@ class GameConfigGUI:
         self.game2048_start_y = tk.StringVar(value="504")
         self.hamster_start_x = tk.StringVar(value="992")
         self.hamster_start_y = tk.StringVar(value="492")
+        self.coinmatch_start_x = tk.StringVar(value="990")  # Default start position for CoinMatch
+        self.coinmatch_start_y = tk.StringVar(value="450")
         
         # Gain Power position
         self.gain_power_x = tk.StringVar(value="967")
@@ -87,12 +91,13 @@ class GameConfigGUI:
         
         # Game order
         self.game_order = []
-        self.available_games = ['coinclick', 'memory', '2048', 'hamsterclimber']
+        self.available_games = ['coinclick', 'memory', '2048', 'hamsterclimber', 'coinmatch']
         self.game_display_names = {
             'coinclick': 'CoinClick',
             'memory': 'Coinflip',
             '2048': '2048Coins',
-            'hamsterclimber': 'Hamster Climber'
+            'hamsterclimber': 'Hamster Climber',
+            'coinmatch': 'CoinMatch'
         }
         self.game_vars = {game: tk.BooleanVar(value=False) for game in self.available_games}
         self.game_order_vars = []
@@ -126,6 +131,12 @@ class GameConfigGUI:
         ttk.Entry(pos_frame, textvariable=self.hamster_y, width=8).grid(row=3, column=2)
         ttk.Button(pos_frame, text="Find", command=lambda: self.find_position(self.hamster_x, self.hamster_y)).grid(row=3, column=3, padx=5)
         
+        # CoinMatch position
+        ttk.Label(pos_frame, text="CoinMatch Position:").grid(row=4, column=0, sticky=tk.W)
+        ttk.Entry(pos_frame, textvariable=self.coinmatch_x, width=8).grid(row=4, column=1, padx=5)
+        ttk.Entry(pos_frame, textvariable=self.coinmatch_y, width=8).grid(row=4, column=2)
+        ttk.Button(pos_frame, text="Find", command=lambda: self.find_position(self.coinmatch_x, self.coinmatch_y)).grid(row=4, column=3, padx=5)
+        
         # Start button positions frame
         start_frame = ttk.LabelFrame(self.scrollable_frame, text="Start Button Positions", padding=10)
         start_frame.pack(fill=tk.X, padx=5, pady=5)
@@ -154,6 +165,12 @@ class GameConfigGUI:
         ttk.Entry(start_frame, textvariable=self.hamster_start_y, width=8).grid(row=3, column=2)
         ttk.Button(start_frame, text="Find", command=lambda: self.find_position(self.hamster_start_x, self.hamster_start_y)).grid(row=3, column=3, padx=5)
         
+        # CoinMatch start
+        ttk.Label(start_frame, text="CoinMatch Start:").grid(row=4, column=0, sticky=tk.W)
+        ttk.Entry(start_frame, textvariable=self.coinmatch_start_x, width=8).grid(row=4, column=1, padx=5)
+        ttk.Entry(start_frame, textvariable=self.coinmatch_start_y, width=8).grid(row=4, column=2)
+        ttk.Button(start_frame, text="Find", command=lambda: self.find_position(self.coinmatch_start_x, self.coinmatch_start_y)).grid(row=4, column=3, padx=5)
+        
         # Gain Power position frame
         gain_frame = ttk.LabelFrame(self.scrollable_frame, text="Gain Power Position", padding=10)
         gain_frame.pack(fill=tk.X, padx=5, pady=5)
@@ -163,7 +180,7 @@ class GameConfigGUI:
         ttk.Entry(gain_frame, textvariable=self.gain_power_y, width=8).grid(row=0, column=2)
         ttk.Button(gain_frame, text="Find", command=lambda: self.find_position(self.gain_power_x, self.gain_power_y)).grid(row=0, column=3, padx=5)
         
-        for i in range(4):
+        for i in range(5):
             pos_frame.grid_rowconfigure(i, pad=5)
             start_frame.grid_rowconfigure(i, pad=5)
         gain_frame.grid_rowconfigure(0, pad=5)
@@ -294,10 +311,12 @@ class GameConfigGUI:
             "MEMORY_POSITION": (int(self.memory_x.get()), int(self.memory_y.get())),
             "GIOCO2048_POSITION": (int(self.game2048_x.get()), int(self.game2048_y.get())),
             "HAMSTERCLIMBER_POSITION": (int(self.hamster_x.get()), int(self.hamster_y.get())),
+            "COINMATCH_POSITION": (int(self.coinmatch_x.get()), int(self.coinmatch_y.get())),
             "COINCLICK_START": (int(self.coinclick_start_x.get()), int(self.coinclick_start_y.get())),
             "MEMORY_START": (int(self.memory_start_x.get()), int(self.memory_start_y.get())),
             "GIOCO2048_START": (int(self.game2048_start_x.get()), int(self.game2048_start_y.get())),
             "HAMSTERCLIMBER_START": (int(self.hamster_start_x.get()), int(self.hamster_start_y.get())),
+            "COINMATCH_START": (int(self.coinmatch_start_x.get()), int(self.coinmatch_start_y.get())),
             "GAIN_POWER_POSITION": (int(self.gain_power_x.get()), int(self.gain_power_y.get())),
             "scroll_down": int(self.scroll_down.get()),
             "BANNER_EVENT": self.banner_event.get(),
@@ -357,6 +376,8 @@ class GameConfigGUI:
                 self.game2048_y.set(str(config["GIOCO2048_POSITION"][1]))
                 self.hamster_x.set(str(config["HAMSTERCLIMBER_POSITION"][0]))
                 self.hamster_y.set(str(config["HAMSTERCLIMBER_POSITION"][1]))
+                self.coinmatch_x.set(str(config.get("COINMATCH_POSITION", [960, 400])[0]))
+                self.coinmatch_y.set(str(config.get("COINMATCH_POSITION", [960, 400])[1]))
                 
                 # Update start button positions
                 self.coinclick_start_x.set(str(config["COINCLICK_START"][0]))
@@ -367,6 +388,8 @@ class GameConfigGUI:
                 self.game2048_start_y.set(str(config["GIOCO2048_START"][1]))
                 self.hamster_start_x.set(str(config["HAMSTERCLIMBER_START"][0]))
                 self.hamster_start_y.set(str(config["HAMSTERCLIMBER_START"][1]))
+                self.coinmatch_start_x.set(str(config.get("COINMATCH_START", [990, 450])[0]))
+                self.coinmatch_start_y.set(str(config.get("COINMATCH_START", [990, 450])[1]))
                 
                 # Update Gain Power position
                 self.gain_power_x.set(str(config["GAIN_POWER_POSITION"][0]))
@@ -396,12 +419,14 @@ class GameConfigGUI:
     MEMORY_POSITION = {memory}
     GIOCO2048_POSITION = {game2048}
     HAMSTERCLIMBER_POSITION = {hamster}
+    COINMATCH_POSITION = {coinmatch}
     
     # Posizioni dei pulsanti start
     COINCLICK_START = {coinclick_start}
     MEMORY_START = {memory_start}
     GIOCO2048_START = {game2048_start}
     HAMSTERCLIMBER_START = {hamster_start}
+    COINMATCH_START = {coinmatch_start}
     
     # Posizione Gain Power
     GAIN_POWER_POSITION = {gain_power}
@@ -419,10 +444,12 @@ class GameConfigGUI:
             memory=config["MEMORY_POSITION"],
             game2048=config["GIOCO2048_POSITION"],
             hamster=config["HAMSTERCLIMBER_POSITION"],
+            coinmatch=config["COINMATCH_POSITION"],
             coinclick_start=config["COINCLICK_START"],
             memory_start=config["MEMORY_START"],
             game2048_start=config["GIOCO2048_START"],
             hamster_start=config["HAMSTERCLIMBER_START"],
+            coinmatch_start=config["COINMATCH_START"],
             gain_power=config["GAIN_POWER_POSITION"],
             scroll=config["scroll_down"],
             banner=config["BANNER_EVENT"],

@@ -1,5 +1,6 @@
 from functions import *
 from Routine_config import GameRoutineConfig
+from CoinMatch import CoinMatchBot
 
 class GameAutomation:
     def __init__(self):
@@ -8,12 +9,14 @@ class GameAutomation:
         self.memory_position = GameRoutineConfig.MEMORY_POSITION
         self.gioco2048_position = GameRoutineConfig.GIOCO2048_POSITION
         self.hamsterclimber_position = GameRoutineConfig.HAMSTERCLIMBER_POSITION
+        self.coinmatch_position = GameRoutineConfig.COINMATCH_POSITION
         
         # Posizioni dei pulsanti start
         self.coinclick_start = GameRoutineConfig.COINCLICK_START
         self.memory_start = GameRoutineConfig.MEMORY_START
         self.game2048_start = GameRoutineConfig.GIOCO2048_START
         self.hamsterclimber_start = GameRoutineConfig.HAMSTERCLIMBER_START
+        self.coinmatch_start = GameRoutineConfig.COINMATCH_START
         
         # Posizione Gain Power
         self.gain_power_position = GameRoutineConfig.GAIN_POWER_POSITION
@@ -136,7 +139,25 @@ class GameAutomation:
         except Exception as e:
             print(f"Errore in CoinClick: {e}")
             return False
-        
+
+    def play_coinmatch(self):
+        """
+        Routine per giocare a CoinMatch
+        """
+        try:
+            print("Avvio routine CoinMatch...")
+            click(self.coinmatch_start[0], self.coinmatch_start[1])  # Click per iniziare
+            sleep(4)
+            coinmatch_game = CoinMatchBot()
+            coinmatch_game.play_game()
+            sleep(3)
+            click(self.gain_power_position[0], self.gain_power_position[1])  # Gain Power
+            sleep(3)
+            return True
+        except Exception as e:
+            print(f"Errore in CoinMatch: {e}")
+            return False
+
     def run_automation(self):
         """
         Routine principale con gestione flessibile dei giochi
@@ -183,6 +204,16 @@ class GameAutomation:
                 elif game == 'hamsterclimber':
                     if self.wait_game_ready(self.hamsterclimber_position):
                         if self.play_hamsterClimber():
+                            pyautogui.press('f5')
+                            sleep(15)
+                            pyautogui.scroll(500)
+                            if self.banner_event:
+                                pyautogui.scroll(self.scroll_down)
+                            break
+
+                elif game == 'coinmatch':
+                    if self.wait_game_ready(self.coinmatch_position):
+                        if self.play_coinmatch():
                             pyautogui.press('f5')
                             sleep(15)
                             pyautogui.scroll(500)
