@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pirots Style CollectR Slot</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a1e3e 0%, #1a2f4f 30%, #2a4a6b 70%, #3a5f8c 100%);
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        
+        .game-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: linear-gradient(145deg, #1a2a3a, #2a3a4a);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6), 
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            border: 2px solid #4a6a8a;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .title {
+            font-size: 3.5em;
+            font-weight: 700;
+            background: linear-gradient(45deg, #ff6b35, #f7931e, #ffd23f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+            letter-spacing: 3px;
+        }
+        
+        .subtitle {
+            color: #8ab4f8;
+            font-size: 1.3em;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+        
+        .main-area {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .grid-container {
+            background: linear-gradient(145deg, #2a3a4a, #1a2a3a);
+            border-radius: 15px;
+            padding: 25px;
+            border: 3px solid #4a6a8a;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .grid-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,107,53,0.1) 50%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .grid-container:hover::before {
+            opacity: 1;
+        }
+        
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 8px;
+            aspect-ratio: 1;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .grid-cell {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+            font-weight: bold;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .gem {
+            background: linear-gradient(145deg, #4a5a6a, #3a4a5a);
+            border-color: #6a7a8a;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        .gem.red { background: linear-gradient(145deg, #e74c3c, #c0392b); color: white; }
+        .gem.blue { background: linear-gradient(145deg, #3498db, #2980b9); color: white; }
+        .gem.green { background: linear-gradient(145deg, #2ecc71, #27ae60); color: white; }
+        .gem.yellow { background: linear-gradient(145deg, #f39c12, #e67e22); color: white; }
+        .gem.purple { background: linear-gradient(145deg, #9b59b6, #8e44ad); color: white; }
+        .gem.orange { background: linear-gradient(145deg, #ff6b35, #e55100); color: white; }
+        
+        .bird {
+            border-color: #ffd23f;
+            color: white;
+            animation: birdFloat 2s ease-in-out infinite alternate;
+            font-size: 2.2em;
+            z-index: 10;
+        }
+        
+        .bird.red { background: linear-gradient(145deg, #e74c3c, #c0392b); }
+        .bird.blue { background: linear-gradient(145deg, #3498db, #2980b9); }
+        .bird.green { background: linear-gradient(145deg, #2ecc71, #27ae60); }
+        .bird.yellow { background: linear-gradient(145deg, #f39c12, #e67e22); }
+        
+        @keyframes birdFloat {
+            0% { transform: translateY(0px) rotate(-2deg); }
+            100% { transform: translateY(-5px) rotate(2deg); }
+        }
+        
+        .bird.collecting {
+            animation: birdCollect 0.8s ease-in-out;
+            transform: scale(1.3);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        }
+        
+        .bird.moving {
+            transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            z-index: 20;
+            transform: scale(1.15);
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.9);
+            animation: birdMoving 0.8s ease-in-out;
+            position: relative;
+        }
+        
+        .bird.moving::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 120%;
+            height: 120%;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.4) 0%, rgba(255, 215, 0, 0.1) 50%, transparent 70%);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            animation: birdTrail 0.8s ease-in-out;
+            z-index: -1;
+        }
+        
+        @keyframes birdMoving {
+            0% { 
+                transform: scale(1.15) rotate(0deg);
+                box-shadow: 0 0 25px rgba(255, 215, 0, 0.9);
+            }
+            25% { 
+                transform: scale(1.25) rotate(5deg);
+                box-shadow: 0 0 30px rgba(255, 215, 0, 1);
+            }
+            50% { 
+                transform: scale(1.2) rotate(-5deg);
+                box-shadow: 0 0 35px rgba(255, 215, 0, 1);
+            }
+            75% { 
+                transform: scale(1.25) rotate(3deg);
+                box-shadow: 0 0 30px rgba(255, 215, 0, 1);
+            }
+            100% { 
+                transform: scale(1.15) rotate(0deg);
+                box-shadow: 0 0 25px rgba(255, 215, 0, 0.9);
+            }
+        }
+        
+        @keyframes birdTrail {
+            0% { 
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+            50% { 
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+            100% { 
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1.5);
+            }
+        }
+        
+        @keyframes birdCollect {
+            0% { transform: scale(1.1) rotate(0deg); }
+            25% { transform: scale(1.4) rotate(90deg); box-shadow: 0 0 30px rgba(255, 215, 0, 1); }
+            50% { transform: scale(1.2) rotate(180deg); box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); }
+            75% { transform: scale(1.4) rotate(270deg); box-shadow: 0 0 30px rgba(255, 215, 0, 1); }
+            100% { transform: scale(1.1) rotate(360deg); }
+        }
+        
+        .gem-collecting {
+            animation: gemCollectEffect 0.8s ease-in-out;
+        }
+        
+        @keyframes gemCollectEffect {
+            0% { transform: scale(1); opacity: 1; }
+            25% { transform: scale(1.2); opacity: 0.8; box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); }
+            50% { transform: scale(0.8); opacity: 0.6; box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
+            75% { transform: scale(1.1); opacity: 0.4; box-shadow: 0 0 25px rgba(255, 215, 0, 1); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+        
+        .collect-line {
+            position: absolute;
+            background: linear-gradient(45deg, #ffd700, #ffff00);
+            height: 3px;
+            border-radius: 2px;
+            transform-origin: left center;
+            animation: collectLine 0.8s ease-in-out;
+            z-index: 15;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+        }
+        
+        @keyframes collectLine {
+            0% { width: 0; opacity: 0; }
+            50% { width: 100%; opacity: 1; }
+            100% { width: 0; opacity: 0; }
+        }
+        
+        @keyframes gemDestination {
+            0% { transform: scale(1); box-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
+            50% { transform: scale(1.1); box-shadow: 0 0 15px rgba(255, 215, 0, 0.8); }
+            100% { transform: scale(1); box-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
+        }
+        
+        @keyframes birdLanding {
+            0% { transform: scale(1.3); box-shadow: 0 0 20px rgba(255, 215, 0, 1); }
+            50% { transform: scale(0.9); box-shadow: 0 0 10px rgba(255, 215, 0, 0.6); }
+            100% { transform: scale(1); box-shadow: 0 0 5px rgba(255, 215, 0, 0.3); }
+        }
+        
+        .special-symbol {
+            background: linear-gradient(145deg, #ffd700, #ffb300);
+            border-color: #ff6b35;
+            color: #8b4513;
+            font-size: 2.2em;
+            animation: specialPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes specialPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(255,215,0,0.3); }
+            50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(255,215,0,0.6); }
+        }
+        
+        .collected {
+            animation: collectEffect 0.5s ease-in-out forwards;
+        }
+        
+        @keyframes collectEffect {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+        
+        .empty {
+            background: linear-gradient(145deg, #2a3a4a, #1a2a3a);
+            border-color: #4a5a6a;
+            color: transparent;
+        }
+        
+        .controls-panel {
+            background: linear-gradient(145deg, #2a3a4a, #1a2a3a);
+            border-radius: 15px;
+            padding: 25px;
+            border: 3px solid #4a6a8a;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .balance-section {
+            background: linear-gradient(145deg, #1a2a3a, #0a1a2a);
+            border-radius: 10px;
+            padding: 20px;
+            border: 2px solid #4a6a8a;
+            text-align: center;
+        }
+        
+        .balance-label {
+            color: #8ab4f8;
+            font-size: 1em;
+            margin-bottom: 8px;
+        }
+        
+        .balance-amount {
+            color: #ffd23f;
+            font-size: 2.2em;
+            font-weight: 700;
+        }
+        
+        .bet-section {
+            background: linear-gradient(145deg, #1a2a3a, #0a1a2a);
+            border-radius: 10px;
+            padding: 20px;
+            border: 2px solid #4a6a8a;
+        }
+        
+        .bet-label {
+            color: #8ab4f8;
+            font-size: 1em;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .bet-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .bet-button {
+            background: linear-gradient(145deg, #4a5a6a, #3a4a5a);
+            color: #ccc;
+            border: 2px solid #6a7a8a;
+            padding: 12px 8px;
+            font-size: 0.9em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .bet-button:hover {
+            background: linear-gradient(145deg, #5a6a7a, #4a5a6a);
+            color: #ffd23f;
+            transform: translateY(-2px);
+        }
+        
+        .bet-button.active {
+            background: linear-gradient(145deg, #ff6b35, #e55100);
+            color: white;
+            border-color: #ffd23f;
+        }
+        
+        .total-bet {
+            background: linear-gradient(145deg, #2a3a4a, #1a2a3a);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            border: 2px solid #4a6a8a;
+        }
+        
+        .total-bet-label {
+            color: #8ab4f8;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        
+        .total-bet-amount {
+            color: #ffd23f;
+            font-size: 1.4em;
+            font-weight: 600;
+        }
+        
+        .spin-button {
+            background: linear-gradient(145deg, #ff6b35, #e55100);
+            color: white;
+            border: 3px solid #ffd23f;
+            padding: 20px;
+            font-size: 1.6em;
+            font-weight: 700;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .spin-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .spin-button:hover:not(:disabled)::before {
+            left: 100%;
+        }
+        
+        .spin-button:hover:not(:disabled) {
+            background: linear-gradient(145deg, #ff7b45, #f55100);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(255,107,53,0.4);
+        }
+        
+        .spin-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .feature-meter {
+            background: linear-gradient(145deg, #1a2a3a, #0a1a2a);
+            border-radius: 10px;
+            padding: 20px;
+            border: 2px solid #4a6a8a;
+        }
+        
+        .meter-label {
+            color: #8ab4f8;
+            font-size: 1em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .meter-bar {
+            background: linear-gradient(145deg, #2a3a4a, #1a2a3a);
+            border-radius: 20px;
+            height: 20px;
+            border: 2px solid #4a6a8a;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .meter-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b35, #ffd23f);
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+        
+        .meter-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        .win-display {
+            background: linear-gradient(145deg, #1a2a3a, #0a1a2a);
+            border-radius: 10px;
+            padding: 20px;
+            border: 2px solid #4a6a8a;
+            text-align: center;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .win-display.active {
+            border-color: #ffd23f;
+            background: linear-gradient(145deg, #3a4a2a, #2a3a1a);
+            animation: winGlow 2s ease-in-out;
+        }
+        
+        @keyframes winGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(255,210,63,0.3); }
+            50% { box-shadow: 0 0 40px rgba(255,210,63,0.6); }
+        }
+        
+        .win-text {
+            color: #8ab4f8;
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+        
+        .win-text.winning {
+            color: #ffd23f;
+            font-weight: 700;
+            font-size: 1.4em;
+        }
+        
+        .collectr-info {
+            background: linear-gradient(145deg, #1a2a3a, #0a1a2a);
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid #4a6a8a;
+            font-size: 0.9em;
+            color: #8ab4f8;
+            line-height: 1.4;
+        }
+        
+        .birds-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .bird-status {
+            background: linear-gradient(145deg, #2a3a4a, #1a2a3a);
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #4a6a8a;
+            font-size: 0.8em;
+        }
+        
+        .bird-status.active {
+            border-color: #ff6b35;
+            color: #ffd23f;
+        }
+        
+        .win-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: particleFloat 4s linear forwards;
+        }
+        
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+        
+        @media (max-width: 1024px) {
+            .main-area {
+                grid-template-columns: 1fr;
+            }
+            
+            .game-grid {
+                max-width: 500px;
+            }
+            
+            .grid-cell {
+                font-size: 1.5em;
+            }
+            
+            .title {
+                font-size: 2.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1 class="title">🦜 PIROTS COLLECTR 🦜</h1>
+            <div class="subtitle">ELK Style Professional Slot Machine</div>
+        </div>
+        
+        <div class="main-area">
+            <div class="grid-container">
+                <div class="game-grid" id="gameGrid">
+                    <!-- Le celle saranno generate dinamicamente -->
+                </div>
+            </div>
+            
+            <div class="controls-panel">
+                <div class="balance-section">
+                    <div class="balance-label">Saldo</div>
+                    <div class="balance-amount" id="balance">€1000.00</div>
+                </div>
+                
+                <div class="bet-section">
+                    <label class="bet-label">Puntata</label>
+                    <div class="bet-controls">
+                        <button class="bet-button" onclick="setBet(0.20)">€0.20</button>
+                        <button class="bet-button" onclick="setBet(0.50)">€0.50</button>
+                        <button class="bet-button active" onclick="setBet(1.00)">€1.00</button>
+                        <button class="bet-button" onclick="setBet(2.00)">€2.00</button>
+                        <button class="bet-button" onclick="setBet(5.00)">€5.00</button>
+                        <button class="bet-button" onclick="setBet(10.00)">€10.00</button>
+                    </div>
+                    
+                    <div class="total-bet">
+                        <div class="total-bet-label">Puntata Totale</div>
+                        <div class="total-bet-amount" id="totalBet">€1.00</div>
+                    </div>
+                </div>
+                
+                <button class="spin-button" id="spinBtn" onclick="startSpin()">SPIN</button>
+                
+                <div class="feature-meter">
+                    <div class="meter-label">Feature Meter</div>
+                    <div class="meter-bar">
+                        <div class="meter-fill" id="meterFill"></div>
+                        <div class="meter-text" id="meterText">0/10</div>
+                    </div>
+                </div>
+                
+                <div class="win-display" id="winDisplay">
+                    <div class="win-text">Premi SPIN per iniziare!</div>
+                </div>
+                
+                <div class="collectr-info">
+                    <strong>CollectR™ Mechanic:</strong><br>
+                    I pappagalli raccolgono gemme dello stesso colore adiacenti (sopra, sotto, sinistra, destra)
+                    
+                    <div class="birds-info">
+                        <div class="bird-status" id="bird1">🦜 Rosso</div>
+                        <div class="bird-status" id="bird2">🦜 Blu</div>
+                        <div class="bird-status" id="bird3">🦜 Verde</div>
+                        <div class="bird-status" id="bird4">🦜 Giallo</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="win-particles" id="particles"></div>
+    
+    <script>
+        const gameState = {
+            balance: 1000,
+            bet: 1.00,
+            isSpinning: false,
+            grid: [],
+            featureMeter: 0,
+            gridSize: 6,
+            totalWinThisRound: 0,
+            birds: [
+                { id: 1, color: 'red', symbol: '🦜', position: null },
+                { id: 2, color: 'blue', symbol: '🦜', position: null },
+                { id: 3, color: 'green', symbol: '🦜', position: null },
+                { id: 4, color: 'yellow', symbol: '🦜', position: null }
+            ]
+        };
+        
+        const symbols = {
+            gems: [
+                { color: 'red', symbol: '💎', value: 5 },
+                { color: 'blue', symbol: '🔷', value: 4 },
+                { color: 'green', symbol: '🟢', value: 3 },
+                { color: 'yellow', symbol: '🟡', value: 2 },
+                { color: 'purple', symbol: '🟣', value: 6 },
+                { color: 'orange', symbol: '🟠', value: 4 }
+            ],
+            special: [
+                { symbol: '⚡', type: 'transform', value: 0 },
+                { symbol: '⬆️', type: 'upgrade', value: 0 },
+                { symbol: '💰', type: 'coin', value: 25 },
+                { symbol: '💣', type: 'bomb', value: 0 },
+                { symbol: '🎁', type: 'bonus', value: 0 }
+            ]
+        };
+        
+        function initGrid() {
+            const grid = document.getElementById('gameGrid');
+            grid.innerHTML = '';
+            gameState.grid = [];
+            
+            for (let i = 0; i < gameState.gridSize * gameState.gridSize; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell empty';
+                cell.id = `cell-${i}`;
+                grid.appendChild(cell);
+                gameState.grid.push({ type: 'empty', symbol: '', color: '', value: 0 });
+            }
+            
+            generateInitialSymbols();
+        }
+        
+        function generateInitialSymbols() {
+            // Resetta la griglia
+            gameState.grid.fill({ type: 'empty', symbol: '', color: '', value: 0 });
+            
+            // Resetta le posizioni degli uccelli
+            gameState.birds.forEach(bird => {
+                bird.position = null;
+                const birdStatus = document.getElementById(`bird${bird.id}`);
+                if (birdStatus) {
+                    birdStatus.classList.remove('active');
+                }
+            });
+            
+            const totalCells = gameState.gridSize * gameState.gridSize;
+            
+            // RIEMPI TUTTO AL 100% - Prima le gemme normali
+            for (let i = 0; i < totalCells; i++) {
+                const isSpecial = Math.random() < 0.15; // 15% probabilità simbolo speciale
+                
+                if (isSpecial) {
+                    const specialSymbol = symbols.special[Math.floor(Math.random() * symbols.special.length)];
+                    gameState.grid[i] = {
+                        type: 'special',
+                        symbol: specialSymbol.symbol,
+                        color: '',
+                        value: specialSymbol.value,
+                        specialType: specialSymbol.type
+                    };
+                } else {
+                    const gem = symbols.gems[Math.floor(Math.random() * symbols.gems.length)];
+                    gameState.grid[i] = {
+                        type: 'gem',
+                        symbol: gem.symbol,
+                        color: gem.color,
+                        value: gem.value
+                    };
+                }
+            }
+            
+            // Poi sostituisci 2-3 posizioni casuali con gli uccelli
+            const birdCount = Math.floor(Math.random() * 2) + 2;
+            for (let i = 0; i < birdCount; i++) {
+                let randomPos = Math.floor(Math.random() * totalCells);
+                
+                const bird = gameState.birds[i % gameState.birds.length];
+                gameState.grid[randomPos] = {
+                    type: 'bird',
+                    symbol: bird.symbol,
+                    color: bird.color,
+                    value: 0,
+                    birdId: bird.id
+                };
+                bird.position = randomPos;
+            }
+            
+            renderGrid();
+        }
+        
+        function renderGrid() {
+            gameState.grid.forEach((cell, index) => {
+                const cellElement = document.getElementById(`cell-${index}`);
+                cellElement.textContent = cell.symbol;
+                cellElement.className = `grid-cell ${cell.type}`;
+                
+                if (cell.color) {
+                    cellElement.classList.add(cell.color);
+                }
+                
+                // Aggiorna stato uccelli
+                if (cell.type === 'bird') {
+                    const birdStatus = document.getElementById(`bird${cell.birdId}`);
+                    if (birdStatus) {
+                        birdStatus.classList.add('active');
+                    }
+                }
+            });
+        }
+        
+        function setBet(amount) {
+            if (gameState.isSpinning) return;
+            
+            gameState.bet = amount;
+            document.getElementById('totalBet').textContent = `€${amount.toFixed(2)}`;
+            
+            document.querySelectorAll('.bet-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            updateDisplay();
+        }
+        
+        function updateDisplay() {
+            document.getElementById('balance').textContent = `€${gameState.balance.toFixed(2)}`;
+            
+            const spinBtn = document.getElementById('spinBtn');
+            if (gameState.balance < gameState.bet) {
+                spinBtn.disabled = true;
+                spinBtn.textContent = 'SALDO INSUFFICIENTE';
+            } else {
+                spinBtn.disabled = gameState.isSpinning;
+                spinBtn.textContent = gameState.isSpinning ? 'RACCOGLIENDO...' : 'SPIN';
+            }
+            
+            // Aggiorna feature meter
+            const meterFill = document.getElementById('meterFill');
+            const meterText = document.getElementById('meterText');
+            const percentage = (gameState.featureMeter / 10) * 100;
+            meterFill.style.width = `${percentage}%`;
+            meterText.textContent = `${gameState.featureMeter}/10`;
+        }
+        
+        function startSpin() {
+            if (gameState.isSpinning || gameState.balance < gameState.bet) return;
+            
+            gameState.isSpinning = true;
+            gameState.balance -= gameState.bet;
+            gameState.totalWinThisRound = 0; // Reset vincite round
+            
+            // Pulisci display risultati
+            const winDisplay = document.getElementById('winDisplay');
+            winDisplay.className = 'win-display';
+            winDisplay.innerHTML = '<div class="win-text">Gli uccelli stanno raccogliendo...</div>';
+            
+            updateDisplay();
+            
+            // Resetta completamente la griglia con nuovi simboli e posizioni degli uccelli
+            generateInitialSymbols();
+            
+            // Avvia la raccolta dopo un breve delay
+            setTimeout(() => {
+                collectPhase();
+            }, 1000);
+        }
+        
+        function collectPhase() {
+            let totalCollected = 0;
+            let totalWin = 0;
+            
+            // Trova tutti gli uccelli sulla griglia
+            const activeBirds = [];
+            gameState.grid.forEach((cell, index) => {
+                if (cell.type === 'bird') {
+                    activeBirds.push({ position: index, color: cell.color, birdId: cell.birdId });
+                }
+            });
+            
+            // Raccogli per ogni uccello
+            activeBirds.forEach(bird => {
+                const collected = collectAdjacentGems(bird.position, bird.color);
+                totalCollected += collected.count;
+                totalWin += collected.value;
+                
+                // Animazione uccello
+                const birdCell = document.getElementById(`cell-${bird.position}`);
+                if (birdCell) {
+                    birdCell.classList.add('collecting');
+                    
+                    setTimeout(() => {
+                        birdCell.classList.remove('collecting');
+                    }, 800);
+                }
+            });
+            
+            // Aggiungi alle vincite totali del round
+            gameState.totalWinThisRound += totalWin;
+            
+            // Aggiorna feature meter
+            gameState.featureMeter += totalCollected;
+            if (gameState.featureMeter >= 10) {
+                gameState.featureMeter = 0;
+                const featureWin = triggerFeature();
+                gameState.totalWinThisRound += featureWin;
+            }
+            
+            // Se ci sono state raccolte, fai cadere simboli e continua
+            if (totalCollected > 0) {
+                setTimeout(() => {
+                    dropNewSymbols();
+                    
+                    // Continua la raccolta se ci sono ancora possibilità
+                    setTimeout(() => {
+                        collectPhase();
+                    }, 800);
+                }, 1500);
+            } else {
+                // Nessuna raccolta più possibile, finisci il giro
+                gameState.balance += gameState.totalWinThisRound * gameState.bet;
+                showResults(gameState.totalWinThisRound, 0);
+                gameState.isSpinning = false;
+                updateDisplay();
+            }
+        }
+        
+        function collectAdjacentGems(position, birdColor) {
+            const row = Math.floor(position / gameState.gridSize);
+            const col = position % gameState.gridSize;
+            const collected = [];
+            let totalValue = 0;
+            
+            // Direzioni: su, giù, sinistra, destra
+            const directions = [
+                { row: -1, col: 0 }, // su
+                { row: 1, col: 0 },  // giù
+                { row: 0, col: -1 }, // sinistra
+                { row: 0, col: 1 }   // destra
+            ];
+            
+            // Trova la prima gemma che può raccogliere
+            let targetGemPos = null;
+            
+            directions.forEach(dir => {
+                const newRow = row + dir.row;
+                const newCol = col + dir.col;
+                
+                if (newRow >= 0 && newRow < gameState.gridSize && 
+                    newCol >= 0 && newCol < gameState.gridSize) {
+                    
+                    const newPos = newRow * gameState.gridSize + newCol;
+                    const cell = gameState.grid[newPos];
+                    
+                    if (cell.type === 'gem' && cell.color === birdColor) {
+                        if (!targetGemPos) {
+                            targetGemPos = newPos; // Prima gemma trovata
+                        }
+                        
+                        // Aggiungi alla lista delle gemme raccolte
+                        collected.push(newPos);
+                        totalValue += cell.value;
+                        
+                        // Crea linea di connessione visiva
+                        createCollectLine(position, newPos);
+                        
+                        // Animazione raccolta gemma più visibile
+                        const cellElement = document.getElementById(`cell-${newPos}`);
+                        cellElement.classList.add('gem-collecting');
+                        
+                        // Svuota la cella
+                        setTimeout(() => {
+                            gameState.grid[newPos] = { type: 'empty', symbol: '', color: '', value: 0 };
+                            cellElement.className = 'grid-cell empty';
+                            cellElement.textContent = '';
+                        }, 800);
+                    }
+                }
+            });
+            
+            // Se ha trovato gemme, muovi l'uccello verso la prima gemma
+            if (targetGemPos !== null && collected.length > 0) {
+                moveBirdToGem(position, targetGemPos);
+            }
+            
+            return { count: collected.length, value: totalValue };
+        }
+        
+        function moveBirdToGem(birdPos, gemPos) {
+            const birdElement = document.getElementById(`cell-${birdPos}`);
+            const gemElement = document.getElementById(`cell-${gemPos}`);
+            
+            if (!birdElement || !gemElement) return;
+            
+            // Calcola la direzione del movimento
+            const birdRow = Math.floor(birdPos / gameState.gridSize);
+            const birdCol = birdPos % gameState.gridSize;
+            const gemRow = Math.floor(gemPos / gameState.gridSize);
+            const gemCol = gemPos % gameState.gridSize;
+            
+            const deltaRow = gemRow - birdRow;
+            const deltaCol = gemCol - birdCol;
+            
+            // Calcola l'offset in pixel
+            const cellSize = birdElement.offsetWidth;
+            const gap = 8; // Gap tra le celle
+            const offsetX = deltaCol * (cellSize + gap);
+            const offsetY = deltaRow * (cellSize + gap);
+            
+            // Applica il movimento con animazione più fluida
+            birdElement.classList.add('moving');
+            birdElement.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(1.15)`;
+            birdElement.style.zIndex = '25';
+            
+            // Aggiungi un effetto pulsante alla gemma di destinazione
+            setTimeout(() => {
+                gemElement.style.animation = 'gemDestination 0.4s ease-in-out';
+            }, 400);
+            
+            // Aggiorna la posizione dell'uccello nel gameState
+            setTimeout(() => {
+                // Sposta l'uccello nella nuova posizione
+                const birdData = gameState.grid[birdPos];
+                gameState.grid[birdPos] = { type: 'empty', symbol: '', color: '', value: 0 };
+                gameState.grid[gemPos] = birdData;
+                
+                // Aggiorna la posizione dell'uccello
+                const birdId = birdData.birdId;
+                const bird = gameState.birds.find(b => b.id === birdId);
+                if (bird) {
+                    bird.position = gemPos;
+                }
+                
+                // Resetta la trasformazione e rimuovi la classe di movimento
+                birdElement.style.transform = '';
+                birdElement.style.zIndex = '';
+                birdElement.classList.remove('moving');
+                
+                // Effetto di "atterraggio" dell'uccello
+                setTimeout(() => {
+                    const newBirdElement = document.getElementById(`cell-${gemPos}`);
+                    if (newBirdElement) {
+                        newBirdElement.style.animation = 'birdLanding 0.5s ease-out';
+                    }
+                }, 100);
+                
+                // Ri-renderizza la griglia
+                renderGrid();
+            }, 800);
+        }
+        
+        function createCollectLine(fromPos, toPos) {
+            const gridContainer = document.querySelector('.game-grid');
+            const fromCell = document.getElementById(`cell-${fromPos}`);
+            const toCell = document.getElementById(`cell-${toPos}`);
+            
+            if (!fromCell || !toCell) return;
+            
+            const fromRect = fromCell.getBoundingClientRect();
+            const toRect = toCell.getBoundingClientRect();
+            const containerRect = gridContainer.getBoundingClientRect();
+            
+            const line = document.createElement('div');
+            line.className = 'collect-line';
+            
+            // Calcola posizione e dimensioni della linea
+            const x1 = fromRect.left + fromRect.width / 2 - containerRect.left;
+            const y1 = fromRect.top + fromRect.height / 2 - containerRect.top;
+            const x2 = toRect.left + toRect.width / 2 - containerRect.left;
+            const y2 = toRect.top + toRect.height / 2 - containerRect.top;
+            
+            const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+            
+            line.style.left = x1 + 'px';
+            line.style.top = y1 + 'px';
+            line.style.width = length + 'px';
+            line.style.transform = `rotate(${angle}deg)`;
+            
+            gridContainer.appendChild(line);
+            
+            // Rimuovi la linea dopo l'animazione
+            setTimeout(() => {
+                if (line.parentNode) {
+                    line.parentNode.removeChild(line);
+                }
+            }, 800);
+        }
+        
+        function triggerFeature() {
+            const winDisplay = document.getElementById('winDisplay');
+            winDisplay.innerHTML = '<div class="win-text winning">FEATURE ATTIVATA! +€50.00</div>';
+            winDisplay.classList.add('active');
+            
+            // Animazione particelle
+            createParticles();
+            
+            return 50; // Valore della feature
+        }
+        
+        function dropNewSymbols() {
+            // Salva le posizioni aggiornate degli uccelli
+            const birdPositions = [];
+            gameState.grid.forEach((cell, index) => {
+                if (cell.type === 'bird') {
+                    birdPositions.push({ position: index, bird: { ...cell } });
+                }
+            });
+            
+            // Sposta le gemme verso il basso (esclusi gli uccelli)
+            for (let col = 0; col < gameState.gridSize; col++) {
+                let emptyRow = gameState.gridSize - 1;
+                
+                for (let row = gameState.gridSize - 1; row >= 0; row--) {
+                    const pos = row * gameState.gridSize + col;
+                    
+                    if (gameState.grid[pos].type !== 'empty' && gameState.grid[pos].type !== 'bird') {
+                        if (emptyRow !== row) {
+                            // Controlla se la posizione di destinazione ha un uccello
+                            const destPos = emptyRow * gameState.gridSize + col;
+                            if (gameState.grid[destPos].type !== 'bird') {
+                                // Sposta la gemma in basso
+                                gameState.grid[destPos] = { ...gameState.grid[pos] };
+                                gameState.grid[pos] = { type: 'empty', symbol: '', color: '', value: 0 };
+                            } else {
+                                // Se c'è un uccello, trova la prossima posizione libera
+                                emptyRow--;
+                                if (emptyRow >= 0) {
+                                    const newDestPos = emptyRow * gameState.gridSize + col;
+                                    gameState.grid[newDestPos] = { ...gameState.grid[pos] };
+                                    gameState.grid[pos] = { type: 'empty', symbol: '', color: '', value: 0 };
+                                }
+                            }
+                        }
+                        emptyRow--;
+                    } else if (gameState.grid[pos].type === 'bird') {
+                        // Se è un uccello, salta questa riga
+                        emptyRow = row - 1;
+                    }
+                }
+            }
+            
+            // Ripristina gli uccelli nelle loro posizioni aggiornate
+            birdPositions.forEach(({ position, bird }) => {
+                gameState.grid[position] = bird;
+            });
+            
+            // Aggiungi nuove gemme dall'alto (solo nelle posizioni vuote senza uccelli)
+            for (let col = 0; col < gameState.gridSize; col++) {
+                for (let row = 0; row < gameState.gridSize; row++) {
+                    const pos = row * gameState.gridSize + col;
+                    
+                    if (gameState.grid[pos].type === 'empty') {
+                        // Non generare nuovi uccelli, solo gemme
+                        const isSpecial = Math.random() < 0.15;
+                        
+                        if (isSpecial) {
+                            const specialSymbol = symbols.special[Math.floor(Math.random() * symbols.special.length)];
+                            gameState.grid[pos] = {
+                                type: 'special',
+                                symbol: specialSymbol.symbol,
+                                color: '',
+                                value: specialSymbol.value,
+                                specialType: specialSymbol.type
+                            };
+                        } else {
+                            const gem = symbols.gems[Math.floor(Math.random() * symbols.gems.length)];
+                            gameState.grid[pos] = {
+                                type: 'gem',
+                                symbol: gem.symbol,
+                                color: gem.color,
+                                value: gem.value
+                            };
+                        }
+                    }
+                }
+            }
+            
+            renderGrid();
+        }
+        
+        function showResults(totalWin, totalCollected) {
+            const winDisplay = document.getElementById('winDisplay');
+            
+            if (totalWin > 0) {
+                winDisplay.innerHTML = `<div class="win-text winning">HAI VINTO €${(totalWin * gameState.bet).toFixed(2)}!</div>`;
+                winDisplay.classList.add('active');
+                createParticles();
+            } else {
+                winDisplay.innerHTML = '<div class="win-text">Nessuna vincita questa volta. Riprova!</div>';
+                winDisplay.classList.remove('active');
+            }
+        }
+        
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            particlesContainer.innerHTML = '';
+            
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                // Posizione casuale
+                particle.style.left = `${Math.random() * 100}%`;
+                
+                // Colore casuale tra oro e arancione
+                const colors = ['#FFD700', '#FFA500', '#FF8C00', '#FFD700'];
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Dimensione casuale
+                const size = Math.random() * 10 + 5;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                // Durata animazione casuale
+                const duration = Math.random() * 3 + 2;
+                particle.style.animationDuration = `${duration}s`;
+                
+                particlesContainer.appendChild(particle);
+                
+                // Rimuovi la particella dopo l'animazione
+                setTimeout(() => {
+                    particle.remove();
+                }, duration * 1000);
+            }
+        }
+        
+        // Inizializza il gioco
+        window.onload = function() {
+            initGrid();
+            updateDisplay();
+            
+            // Aggiorna stato uccelli
+            gameState.birds.forEach(bird => {
+                const birdStatus = document.getElementById(`bird${bird.id}`);
+                if (birdStatus) {
+                    birdStatus.classList.remove('active');
+                }
+            });
+        };
+    </script>
+</body>
+</html>
