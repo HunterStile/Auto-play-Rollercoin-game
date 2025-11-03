@@ -19,6 +19,7 @@ class AutoClicker:
         self.mouse_listener = None
         self.keyboard_listener = None
         self.last_action_time = None  # Timestamp dell'ultima azione registrata
+        self.return_to_menu = False  # Flag per tornare al menu principale
         
     def on_click(self, x, y, button, pressed):
         """Callback per catturare il primo click del mouse"""
@@ -223,12 +224,15 @@ class AutoClicker:
     
     def show_menu(self):
         """Mostra il menu di selezione"""
+        print("\n" + "="*50)
         print("=== AUTOCLICK ===")
+        print("="*50)
         print("Scegli la modalità:")
         print("1. Autoclick del mouse")
         print("2. Autoclick della tastiera (tasto L)")
         print("3. Registrazione e riproduzione di sequenze")
         print("0. Esci")
+        print("="*50)
         
         while True:
             try:
@@ -236,15 +240,21 @@ class AutoClicker:
                 if choice == '1':
                     self.mode = 'mouse'
                     self.run_mouse_mode()
-                    break
+                    if not self.return_to_menu:
+                        break
+                    self.return_to_menu = False
                 elif choice == '2':
                     self.mode = 'keyboard'
                     self.run_keyboard_mode()
-                    break
+                    if not self.return_to_menu:
+                        break
+                    self.return_to_menu = False
                 elif choice == '3':
                     self.mode = 'sequence'
                     self.run_sequence_mode()
-                    break
+                    if not self.return_to_menu:
+                        break
+                    self.return_to_menu = False
                 elif choice == '0':
                     print("Arrivederci!")
                     break
@@ -261,7 +271,8 @@ class AutoClicker:
         print("1. Clicca nel punto dove vuoi che continui a cliccare")
         print("2. L'autoclick inizierà automaticamente")
         print("3. Premi 'q' per mettere in pausa/riprendere")
-        print("4. Premi 'ESC' per tornare al menu principale")
+        print("4. Premi '9' per tornare al menu principale")
+        print("5. Premi 'ESC' per uscire dal programma")
         print("\nIn attesa del primo click...")
         
         # Listener per il mouse (per catturare il primo click)
@@ -270,6 +281,7 @@ class AutoClicker:
         
         # Loop principale per controllare i tasti
         q_pressed = False
+        nine_pressed = False
         try:
             while True:
                 if keyboard.is_pressed('q'):
@@ -278,6 +290,16 @@ class AutoClicker:
                         q_pressed = True
                 else:
                     q_pressed = False
+                
+                if keyboard.is_pressed('9'):
+                    if not nine_pressed:
+                        self.stop_clicking()
+                        self.return_to_menu = True
+                        print("\nTornando al menu principale...")
+                        nine_pressed = True
+                        break
+                else:
+                    nine_pressed = False
                 
                 if keyboard.is_pressed('esc'):
                     self.stop_clicking()
@@ -294,7 +316,8 @@ class AutoClicker:
         print("Istruzioni:")
         print("1. Premi INVIO per iniziare l'autoclick del tasto L")
         print("2. Premi 'q' per mettere in pausa/riprendere")
-        print("3. Premi 'ESC' per tornare al menu principale")
+        print("3. Premi '9' per tornare al menu principale")
+        print("4. Premi 'ESC' per uscire dal programma")
         
         input("\nPremi INVIO per iniziare...")
         print("Autoclick del tasto L avviato! Premi 'q' per pausa/riprendi")
@@ -302,6 +325,7 @@ class AutoClicker:
         
         # Loop principale per controllare i tasti
         q_pressed = False
+        nine_pressed = False
         try:
             while True:
                 if keyboard.is_pressed('q'):
@@ -310,6 +334,16 @@ class AutoClicker:
                         q_pressed = True
                 else:
                     q_pressed = False
+                
+                if keyboard.is_pressed('9'):
+                    if not nine_pressed:
+                        self.stop_clicking()
+                        self.return_to_menu = True
+                        print("\nTornando al menu principale...")
+                        nine_pressed = True
+                        break
+                else:
+                    nine_pressed = False
                 
                 if keyboard.is_pressed('esc'):
                     self.stop_clicking()
@@ -320,75 +354,171 @@ class AutoClicker:
     
     def run_sequence_mode(self):
         """Modalità registrazione e riproduzione di sequenze"""
-        print("\n=== MODALITÀ REGISTRAZIONE E RIPRODUZIONE SEQUENZE ===")
-        print("Istruzioni:")
-        print("1. Premi 'R' per iniziare la registrazione (attesa 3 secondi)")
-        print("2. Esegui la sequenza di click e tasti che vuoi registrare")
-        print("3. Premi 'R' di nuovo per fermare la registrazione")
-        print("4. Premi 'Q' per avviare/fermare la riproduzione della sequenza")
-        print("5. Premi 'T' per rifare la registrazione")
-        print("6. Premi 'ESC' per tornare al menu principale")
-        print("\nNota: I tempi di attesa tra le azioni vengono registrati e rispettati durante la riproduzione.")
+        while True:
+            print("\n" + "="*60)
+            print("=== MODALITÀ REGISTRAZIONE E RIPRODUZIONE SEQUENZE ===")
+            print("="*60)
+            print("\nMenu:")
+            print("1. Nuova registrazione (con timing)")
+            print("2. Riproduci sequenza registrata")
+            print("3. Visualizza sequenza registrata")
+            print("4. Cancella sequenza")
+            print("9. Torna al menu principale")
+            print("0. Esci dal programma")
+            print("="*60)
+            
+            choice = input("\nScegli un'opzione: ").strip()
+            
+            if choice == '1':
+                self.start_sequence_recording()
+            elif choice == '2':
+                if not self.recorded_sequence:
+                    print("\nNessuna sequenza registrata! Registra prima una sequenza.")
+                else:
+                    self.start_sequence_playback()
+            elif choice == '3':
+                self.show_recorded_sequence()
+            elif choice == '4':
+                if self.recorded_sequence:
+                    confirm = input("Sei sicuro di voler cancellare la sequenza? (s/n): ").strip().lower()
+                    if confirm == 's':
+                        self.recorded_sequence = []
+                        print("Sequenza cancellata!")
+                else:
+                    print("Nessuna sequenza da cancellare.")
+            elif choice == '9':
+                self.return_to_menu = True
+                break
+            elif choice == '0':
+                print("Arrivederci!")
+                return
+            else:
+                print("Scelta non valida!")
+    
+    def start_sequence_recording(self):
+        """Avvia la registrazione di una nuova sequenza"""
+        print("\n" + "="*60)
+        print("=== REGISTRAZIONE NUOVA SEQUENZA ===")
+        print("="*60)
+        print("\nIstruzioni:")
+        print("- Clicca con il mouse per registrare i click nelle posizioni desiderate")
+        print("- I tempi di attesa tra le azioni vengono registrati automaticamente")
+        print("- Premi 'R' per fermare la registrazione")
+        print("- Premi 'ESC' per annullare")
+        print("\nLa registrazione inizierà tra 3 secondi...")
+        time.sleep(3)
         
-        # Loop principale per controllare i tasti
+        self.start_recording()
+        
+        # Loop per controllare quando fermare la registrazione
         r_pressed = False
-        q_pressed = False
-        t_pressed = False
-        
         try:
-            while True:
-                # Gestione tasto R (registrazione)
+            while self.recording:
                 if keyboard.is_pressed('r'):
-                    if not r_pressed:  # Evita ripetizioni continue
+                    if not r_pressed:
+                        self.stop_recording()
                         r_pressed = True
-                        if not self.recording:
-                            print("La registrazione inizierà tra 3 secondi...")
-                            time.sleep(3)
-                            self.start_recording()
-                        else:
-                            self.stop_recording()
                 else:
                     r_pressed = False
                 
-                # Gestione tasto Q (riproduzione)
+                if keyboard.is_pressed('esc'):
+                    self.stop_recording()
+                    self.recorded_sequence = []
+                    print("Registrazione annullata!")
+                    break
+                
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            self.stop_recording()
+    
+    def start_sequence_playback(self):
+        """Avvia la riproduzione della sequenza"""
+        print("\n" + "="*60)
+        print("=== RIPRODUZIONE SEQUENZA ===")
+        print("="*60)
+        print("\nIstruzioni:")
+        print("- Premi 'Q' per avviare/mettere in pausa la riproduzione")
+        print("- Premi 'S' per fermare la riproduzione")
+        print("- Premi '9' per tornare al menu sequenze")
+        print("- Premi 'ESC' per uscire dal programma")
+        print("\nPremi 'Q' per iniziare...")
+        
+        # Loop principale per controllare i tasti
+        q_pressed = False
+        s_pressed = False
+        nine_pressed = False
+        
+        try:
+            while True:
+                # Gestione tasto Q (avvio/pausa riproduzione)
                 if keyboard.is_pressed('q'):
-                    if not q_pressed:  # Evita ripetizioni continue
+                    if not q_pressed:
                         q_pressed = True
-                        if not self.recording:
-                            if self.sequence_playing:
-                                self.toggle_pause()
-                            else:
-                                self.play_sequence()
+                        if not self.sequence_playing:
+                            self.play_sequence()
+                        else:
+                            self.toggle_pause()
                 else:
                     q_pressed = False
                 
-                # Gestione tasto T (rifare registrazione)
-                if keyboard.is_pressed('t'):
-                    if not t_pressed:  # Evita ripetizioni continue
-                        t_pressed = True
-                        if not self.recording and not self.sequence_playing:
-                            choice = input("Vuoi rifare la registrazione? (s/n): ").strip().lower()
-                            if choice == 's':
-                                print("La registrazione inizierà tra 3 secondi...")
-                                time.sleep(3)
-                                self.start_recording()
+                # Gestione tasto S (stop)
+                if keyboard.is_pressed('s'):
+                    if not s_pressed:
+                        s_pressed = True
+                        if self.sequence_playing:
+                            self.stop_sequence()
                 else:
-                    t_pressed = False
+                    s_pressed = False
+                
+                # Gestione tasto 9 (torna al menu)
+                if keyboard.is_pressed('9'):
+                    if not nine_pressed:
+                        nine_pressed = True
+                        if self.sequence_playing:
+                            self.stop_sequence()
+                        print("\nTornando al menu sequenze...")
+                        break
+                else:
+                    nine_pressed = False
                 
                 # Gestione tasto ESC (uscita)
                 if keyboard.is_pressed('esc'):
-                    if self.recording:
-                        self.stop_recording()
                     if self.sequence_playing:
                         self.stop_sequence()
                     break
                 
                 time.sleep(0.1)
         except KeyboardInterrupt:
-            if self.recording:
-                self.stop_recording()
             if self.sequence_playing:
                 self.stop_sequence()
+    
+    def show_recorded_sequence(self):
+        """Mostra la sequenza registrata"""
+        if not self.recorded_sequence:
+            print("\nNessuna sequenza registrata!")
+            return
+        
+        print("\n" + "="*60)
+        print("=== SEQUENZA REGISTRATA ===")
+        print("="*60)
+        print(f"\nTotale azioni: {len(self.recorded_sequence)}")
+        print("\nDettaglio azioni:")
+        
+        for i, action in enumerate(self.recorded_sequence, 1):
+            action_type = action[0]
+            
+            if action_type == 'mouse_click':
+                _, x, y, button, pressed, delay = action
+                print(f"{i}. Click mouse a ({x}, {y}) - Attesa: {delay:.2f}s")
+            elif action_type == 'key_press':
+                _, key_char, delay = action
+                print(f"{i}. Tasto: {key_char} - Attesa: {delay:.2f}s")
+            elif action_type == 'special_key_press':
+                _, key_name, delay = action
+                print(f"{i}. Tasto speciale: {key_name} - Attesa: {delay:.2f}s")
+        
+        print("="*60)
+        input("\nPremi INVIO per continuare...")
     
     def run(self):
         """Funzione principale"""
