@@ -2,6 +2,7 @@ import os
 import random
 import subprocess
 import time
+import keyboard
 
 def trova_video(cartella):
     """Trova tutti i file video nella cartella e sottocartelle"""
@@ -34,7 +35,7 @@ def riproduci_video_casuale(tutti_video, video_riprodotti):
     video_riprodotti.append(video_casuale)
     
     print(f"\nRiproduco: {os.path.basename(video_casuale)}")
-    print("Premi INVIO per passare al prossimo video...")
+    print("Premi Q per passare al prossimo video...")
     
     subprocess.Popen(["start", video_casuale], shell=True)
     return video_casuale
@@ -54,7 +55,7 @@ def main():
     try:
         while True:
             video_corrente = riproduci_video_casuale(tutti_video, video_riprodotti)
-            input()  # Aspetta che l'utente prema INVIO
+            keyboard.wait('q')  # Aspetta che l'utente prema Q
             termina_processo_video()
             time.sleep(1)  # Piccola pausa per assicurarsi che il processo sia terminato
             
