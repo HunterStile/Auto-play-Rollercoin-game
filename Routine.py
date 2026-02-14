@@ -35,9 +35,10 @@ class GameAutomation:
                 scroll_value=getattr(GameRoutineConfig, 'ELEZIONI_SCROLL', 500),
                 wait_time=getattr(GameRoutineConfig, 'ELEZIONI_WAIT_TIME', 5)
             )
-            # Converti minuti in secondi
-            interval_minutes = getattr(GameRoutineConfig, 'ELEZIONI_INTERVAL_MINUTES', 60)
-            self.elezioni_interval = interval_minutes * 60
+            # Tempo base in minuti
+            self.elezioni_base_minutes = getattr(GameRoutineConfig, 'ELEZIONI_INTERVAL_MINUTES', 60)
+            # Contatore iterazioni
+            self.elezioni_iteration = 0
 
     def wait_game_ready(self, game_position):
         """
@@ -207,11 +208,25 @@ class GameAutomation:
         # Se le elezioni sono abilitate, esegui SOLO le elezioni in loop
         if self.elezioni_enabled:
             print("Modalità ELEZIONI attivata - eseguo solo elezioni in loop continuo")
+            print(f"Tempo base configurato: {self.elezioni_base_minutes} minuti")
+            print("Il tempo di attesa aumenterà di 2 minuti ad ogni iterazione\n")
+            
             while True:
+                # Incrementa il contatore di iterazioni
+                self.elezioni_iteration += 1
+                
+                # Esegui le elezioni
                 self.check_and_run_elezioni()
+                
+                # Calcola il tempo di attesa progressivo: base + (iterazione * 2 minuti)
+                wait_minutes = self.elezioni_base_minutes + (self.elezioni_iteration * 2)
+                wait_seconds = wait_minutes * 60
+                
                 # Attendi l'intervallo prima della prossima esecuzione
-                print(f"Attendo {self.elezioni_interval/60:.0f} minuti prima della prossima esecuzione delle elezioni...")
-                sleep(self.elezioni_interval)
+                print(f"\n=== Iterazione {self.elezioni_iteration} completata ===")
+                print(f"Prossima esecuzione tra {wait_minutes} minuti ({wait_minutes - self.elezioni_base_minutes} minuti in più rispetto al tempo base)")
+                print(f"Attendo...\n")
+                sleep(wait_seconds)
         
         # Altrimenti esegui solo i giochi
         print("Modalità GIOCHI attivata")
