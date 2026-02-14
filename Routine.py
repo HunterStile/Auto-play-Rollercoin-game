@@ -1,6 +1,7 @@
 from functions import *
 from Routine_config import GameRoutineConfig
 from CoinMatch import CoinMatchBot
+from Elezioni import ElezioniBot
 
 class GameAutomation:
     def __init__(self):
@@ -24,6 +25,17 @@ class GameAutomation:
         self.banner_event = GameRoutineConfig.BANNER_EVENT
         self.levelmemory = GameRoutineConfig.LEVEL_MEMORY
         self.scroll_down = GameRoutineConfig.scroll_down
+        
+        # Elezioni configuration
+        self.elezioni_enabled = getattr(GameRoutineConfig, 'ELEZIONI_ENABLED', False)
+        if self.elezioni_enabled:
+            self.elezioni_bot = ElezioniBot(
+                voto1_position=getattr(GameRoutineConfig, 'ELEZIONI_VOTO1_POSITION', (446, 724)),
+                voto2_position=getattr(GameRoutineConfig, 'ELEZIONI_VOTO2_POSITION', (1358, 720)),
+                scroll_value=getattr(GameRoutineConfig, 'ELEZIONI_SCROLL', 500),
+                wait_time=getattr(GameRoutineConfig, 'ELEZIONI_WAIT_TIME', 5)
+            )
+            self.elezioni_interval = 3600  # 1 ora in secondi
 
     def wait_game_ready(self, game_position):
         """
@@ -157,6 +169,30 @@ class GameAutomation:
         except Exception as e:
             print(f"Errore in CoinMatch: {e}")
             return False
+    
+    def check_and_run_elezioni(self):
+        """
+        Esegue il ciclo delle elezioni
+        """
+        if not self.elezioni_enabled:
+            return
+        
+        print("\n=== Esecuzione Elezioni ===")
+        try:
+            # Torna in alto alla pagina
+            pyautogui.press('f5')
+            sleep(5)
+            click(800, 150)
+            sleep(1)
+            
+            # Esegui il ciclo delle elezioni
+            if self.elezioni_bot.run_election_cycle():
+                print(f"Elezioni completate con successo.")
+            else:
+                print("Errore nell'esecuzione delle elezioni.")
+        except Exception as e:
+            print(f"Errore durante l'esecuzione delle elezioni: {e}")
+        print("=== Fine Elezioni ===\n")
 
     def run_automation(self):
         """
@@ -165,6 +201,18 @@ class GameAutomation:
         print("Inizio dell'automazione...")
         click(800,150)
         sleep(1)
+        
+        # Se le elezioni sono abilitate, esegui SOLO le elezioni in loop
+        if self.elezioni_enabled:
+            print("Modalità ELEZIONI attivata - eseguo solo elezioni in loop continuo")
+            while True:
+                self.check_and_run_elezioni()
+                # Attendi l'intervallo prima della prossima esecuzione
+                print(f"Attendo {self.elezioni_interval/60:.0f} minuti prima della prossima esecuzione delle elezioni...")
+                sleep(self.elezioni_interval)
+        
+        # Altrimenti esegui solo i giochi
+        print("Modalità GIOCHI attivata")
         pyautogui.scroll(500)
         if self.banner_event:
             pyautogui.scroll(self.scroll_down)

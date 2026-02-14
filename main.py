@@ -38,6 +38,7 @@ class GameConfigGUI:
         
         # Create GUI elements
         self.create_position_settings()
+        self.create_elezioni_settings()
         self.create_game_order_settings()
         self.create_other_settings()
         self.create_buttons()
@@ -83,6 +84,15 @@ class GameConfigGUI:
         # Gain Power position
         self.gain_power_x = tk.StringVar(value="967")
         self.gain_power_y = tk.StringVar(value="645")
+        
+        # Elezioni (Elections) settings
+        self.elezioni_enabled = tk.BooleanVar(value=False)
+        self.elezioni_voto1_x = tk.StringVar(value="446")
+        self.elezioni_voto1_y = tk.StringVar(value="724")
+        self.elezioni_voto2_x = tk.StringVar(value="1358")
+        self.elezioni_voto2_y = tk.StringVar(value="720")
+        self.elezioni_scroll = tk.StringVar(value="500")
+        self.elezioni_wait_time = tk.StringVar(value="5")
         
         # Other settings
         self.scroll_down = tk.StringVar(value="-390")
@@ -184,6 +194,51 @@ class GameConfigGUI:
             pos_frame.grid_rowconfigure(i, pad=5)
             start_frame.grid_rowconfigure(i, pad=5)
         gain_frame.grid_rowconfigure(0, pad=5)
+    
+    def create_elezioni_settings(self):
+        # Elezioni settings frame
+        elezioni_frame = ttk.LabelFrame(self.scrollable_frame, text="Elezioni (Elections)", padding=10)
+        elezioni_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        # Warning label
+        warning_label = ttk.Label(
+            elezioni_frame, 
+            text="⚠️ ATTENZIONE: Se abiliti le elezioni, il bot eseguirà SOLO le elezioni in loop.\nSe disabiliti, eseguirà SOLO i giochi.",
+            foreground="red",
+            font=('Helvetica', 9, 'bold')
+        )
+        warning_label.pack(anchor=tk.W, pady=(0, 10))
+        
+        # Enable checkbox
+        ttk.Checkbutton(
+            elezioni_frame,
+            text="Abilita Elezioni (Disabilita Giochi)",
+            variable=self.elezioni_enabled
+        ).pack(anchor=tk.W, pady=5)
+        
+        # Voto 1 position
+        ttk.Label(elezioni_frame, text="Posizione Voto 1:").pack(anchor=tk.W)
+        voto1_frame = ttk.Frame(elezioni_frame)
+        voto1_frame.pack(fill=tk.X, pady=2)
+        ttk.Entry(voto1_frame, textvariable=self.elezioni_voto1_x, width=8).pack(side=tk.LEFT, padx=5)
+        ttk.Entry(voto1_frame, textvariable=self.elezioni_voto1_y, width=8).pack(side=tk.LEFT)
+        ttk.Button(voto1_frame, text="Trova", command=lambda: self.find_position(self.elezioni_voto1_x, self.elezioni_voto1_y)).pack(side=tk.LEFT, padx=5)
+        
+        # Voto 2 position
+        ttk.Label(elezioni_frame, text="Posizione Voto 2:").pack(anchor=tk.W, pady=(10,0))
+        voto2_frame = ttk.Frame(elezioni_frame)
+        voto2_frame.pack(fill=tk.X, pady=2)
+        ttk.Entry(voto2_frame, textvariable=self.elezioni_voto2_x, width=8).pack(side=tk.LEFT, padx=5)
+        ttk.Entry(voto2_frame, textvariable=self.elezioni_voto2_y, width=8).pack(side=tk.LEFT)
+        ttk.Button(voto2_frame, text="Trova", command=lambda: self.find_position(self.elezioni_voto2_x, self.elezioni_voto2_y)).pack(side=tk.LEFT, padx=5)
+        
+        # Scroll value
+        ttk.Label(elezioni_frame, text="Valore Scroll:").pack(anchor=tk.W, pady=(10,0))
+        ttk.Entry(elezioni_frame, textvariable=self.elezioni_scroll, width=10).pack(anchor=tk.W, pady=2)
+        
+        # Wait time
+        ttk.Label(elezioni_frame, text="Tempo di attesa (secondi):").pack(anchor=tk.W, pady=(10,0))
+        ttk.Entry(elezioni_frame, textvariable=self.elezioni_wait_time, width=10).pack(anchor=tk.W, pady=2)
     
     def create_game_order_settings(self):
         # Game order frame
@@ -321,7 +376,12 @@ class GameConfigGUI:
             "scroll_down": int(self.scroll_down.get()),
             "BANNER_EVENT": self.banner_event.get(),
             "LEVEL_MEMORY": int(self.level_memory.get()),
-            "GAME_ORDER": self.get_game_order()
+            "GAME_ORDER": self.get_game_order(),
+            "ELEZIONI_ENABLED": self.elezioni_enabled.get(),
+            "ELEZIONI_VOTO1_POSITION": (int(self.elezioni_voto1_x.get()), int(self.elezioni_voto1_y.get())),
+            "ELEZIONI_VOTO2_POSITION": (int(self.elezioni_voto2_x.get()), int(self.elezioni_voto2_y.get())),
+            "ELEZIONI_SCROLL": int(self.elezioni_scroll.get()),
+            "ELEZIONI_WAIT_TIME": int(self.elezioni_wait_time.get())
         }
         
         # Try to save to JSON file in the current directory
@@ -406,6 +466,15 @@ class GameConfigGUI:
                     if game in config["GAME_ORDER"]:
                         idx = config["GAME_ORDER"].index(game)
                         self.game_order_vars[self.available_games.index(game)].set(str(idx + 1))
+                
+                # Update elezioni settings
+                self.elezioni_enabled.set(config.get("ELEZIONI_ENABLED", False))
+                self.elezioni_voto1_x.set(str(config.get("ELEZIONI_VOTO1_POSITION", [446, 724])[0]))
+                self.elezioni_voto1_y.set(str(config.get("ELEZIONI_VOTO1_POSITION", [446, 724])[1]))
+                self.elezioni_voto2_x.set(str(config.get("ELEZIONI_VOTO2_POSITION", [1358, 720])[0]))
+                self.elezioni_voto2_y.set(str(config.get("ELEZIONI_VOTO2_POSITION", [1358, 720])[1]))
+                self.elezioni_scroll.set(str(config.get("ELEZIONI_SCROLL", 500)))
+                self.elezioni_wait_time.set(str(config.get("ELEZIONI_WAIT_TIME", 5)))
             else:
                 print("No existing configuration file found. Using default values.")
         except Exception as e:
@@ -439,6 +508,13 @@ class GameConfigGUI:
     LEVEL_MEMORY = {memory_level}
 
     GAME_ORDER = {game_order}
+    
+    # Configurazione Elezioni
+    ELEZIONI_ENABLED = {elezioni_enabled}
+    ELEZIONI_VOTO1_POSITION = {elezioni_voto1}
+    ELEZIONI_VOTO2_POSITION = {elezioni_voto2}
+    ELEZIONI_SCROLL = {elezioni_scroll}
+    ELEZIONI_WAIT_TIME = {elezioni_wait_time}
 """.format(
             coinclick=config["COINCLICK_POSITION"],
             memory=config["MEMORY_POSITION"],
@@ -454,7 +530,12 @@ class GameConfigGUI:
             scroll=config["scroll_down"],
             banner=config["BANNER_EVENT"],
             memory_level=config["LEVEL_MEMORY"],
-            game_order=config["GAME_ORDER"]
+            game_order=config["GAME_ORDER"],
+            elezioni_enabled=config["ELEZIONI_ENABLED"],
+            elezioni_voto1=config["ELEZIONI_VOTO1_POSITION"],
+            elezioni_voto2=config["ELEZIONI_VOTO2_POSITION"],
+            elezioni_scroll=config["ELEZIONI_SCROLL"],
+            elezioni_wait_time=config["ELEZIONI_WAIT_TIME"]
         )
         
         with open(file_path, 'w') as f:
