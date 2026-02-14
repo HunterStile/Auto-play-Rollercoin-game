@@ -182,13 +182,11 @@ class GameAutomation:
         
         print("\n=== Esecuzione Elezioni ===")
         try:
-            # Torna in alto alla pagina
+            # Refresh della pagina
             pyautogui.press('f5')
-            sleep(5)
-            click(800, 150)
-            sleep(1)
+            sleep(5)  # Aspetta che la pagina si carichi
             
-            # Esegui il ciclo delle elezioni
+            # Esegui il ciclo delle elezioni (scroll + votazioni)
             if self.elezioni_bot.run_election_cycle():
                 print(f"Elezioni completate con successo.")
             else:

@@ -65,9 +65,10 @@ class ElezioniBot:
         """
         Esegue un ciclo completo di elezioni:
         1. Scroll in basso
-        2. Claim dei voti
-        3. Attesa
-        4. Riavvio votazione
+        2. Attesa 3 secondi
+        3. Claim dei voti
+        4. Attesa
+        5. Riavvio votazione
         """
         try:
             print("=== Inizio ciclo elezioni ===")
@@ -75,7 +76,10 @@ class ElezioniBot:
             # Scroll in basso
             print(f"Scrolling di {self.scroll_value} in basso...")
             pyautogui.scroll(-self.scroll_value)
-            sleep(2)
+            
+            # Attesa di 3 secondi dopo lo scroll
+            print("Attendo 3 secondi...")
+            sleep(3)
             
             # Claim voti
             if not self.claim_votes():
