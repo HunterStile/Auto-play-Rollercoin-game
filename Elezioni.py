@@ -27,11 +27,13 @@ class ElezioniBot:
         Claima i due voti disponibili
         """
         try:
-            print("Claiming voto 1...")
+            print("Claiming voto 1 (sinistra)...")
             click(self.voto1_position[0], self.voto1_position[1])
+            
+            # Attesa di 1 secondo tra voto 1 e voto 2
             sleep(1)
             
-            print("Claiming voto 2...")
+            print("Claiming voto 2 (destra)...")
             click(self.voto2_position[0], self.voto2_position[1])
             sleep(1)
             
@@ -48,11 +50,13 @@ class ElezioniBot:
             print(f"Attendo {self.wait_time} secondi prima di riavviare la votazione...")
             sleep(self.wait_time)
             
-            print("Riavvio votazione 1...")
+            print("Riavvio votazione 1 (sinistra)...")
             click(self.voto1_position[0], self.voto1_position[1])
+            
+            # Attesa di 1 secondo tra voto 1 e voto 2
             sleep(1)
             
-            print("Riavvio votazione 2...")
+            print("Riavvio votazione 2 (destra)...")
             click(self.voto2_position[0], self.voto2_position[1])
             sleep(1)
             
