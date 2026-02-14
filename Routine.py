@@ -35,7 +35,9 @@ class GameAutomation:
                 scroll_value=getattr(GameRoutineConfig, 'ELEZIONI_SCROLL', 500),
                 wait_time=getattr(GameRoutineConfig, 'ELEZIONI_WAIT_TIME', 5)
             )
-            self.elezioni_interval = 3600  # 1 ora in secondi
+            # Converti minuti in secondi
+            interval_minutes = getattr(GameRoutineConfig, 'ELEZIONI_INTERVAL_MINUTES', 60)
+            self.elezioni_interval = interval_minutes * 60
 
     def wait_game_ready(self, game_position):
         """

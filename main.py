@@ -93,6 +93,7 @@ class GameConfigGUI:
         self.elezioni_voto2_y = tk.StringVar(value="720")
         self.elezioni_scroll = tk.StringVar(value="500")
         self.elezioni_wait_time = tk.StringVar(value="5")
+        self.elezioni_interval_minutes = tk.StringVar(value="60")
         
         # Other settings
         self.scroll_down = tk.StringVar(value="-390")
@@ -239,6 +240,10 @@ class GameConfigGUI:
         # Wait time
         ttk.Label(elezioni_frame, text="Tempo di attesa (secondi):").pack(anchor=tk.W, pady=(10,0))
         ttk.Entry(elezioni_frame, textvariable=self.elezioni_wait_time, width=10).pack(anchor=tk.W, pady=2)
+        
+        # Interval between elections
+        ttk.Label(elezioni_frame, text="Intervallo tra elezioni (minuti):").pack(anchor=tk.W, pady=(10,0))
+        ttk.Entry(elezioni_frame, textvariable=self.elezioni_interval_minutes, width=10).pack(anchor=tk.W, pady=2)
     
     def create_game_order_settings(self):
         # Game order frame
@@ -381,7 +386,8 @@ class GameConfigGUI:
             "ELEZIONI_VOTO1_POSITION": (int(self.elezioni_voto1_x.get()), int(self.elezioni_voto1_y.get())),
             "ELEZIONI_VOTO2_POSITION": (int(self.elezioni_voto2_x.get()), int(self.elezioni_voto2_y.get())),
             "ELEZIONI_SCROLL": int(self.elezioni_scroll.get()),
-            "ELEZIONI_WAIT_TIME": int(self.elezioni_wait_time.get())
+            "ELEZIONI_WAIT_TIME": int(self.elezioni_wait_time.get()),
+            "ELEZIONI_INTERVAL_MINUTES": int(self.elezioni_interval_minutes.get())
         }
         
         # Try to save to JSON file in the current directory
@@ -475,6 +481,7 @@ class GameConfigGUI:
                 self.elezioni_voto2_y.set(str(config.get("ELEZIONI_VOTO2_POSITION", [1358, 720])[1]))
                 self.elezioni_scroll.set(str(config.get("ELEZIONI_SCROLL", 500)))
                 self.elezioni_wait_time.set(str(config.get("ELEZIONI_WAIT_TIME", 5)))
+                self.elezioni_interval_minutes.set(str(config.get("ELEZIONI_INTERVAL_MINUTES", 60)))
             else:
                 print("No existing configuration file found. Using default values.")
         except Exception as e:
@@ -515,6 +522,7 @@ class GameConfigGUI:
     ELEZIONI_VOTO2_POSITION = {elezioni_voto2}
     ELEZIONI_SCROLL = {elezioni_scroll}
     ELEZIONI_WAIT_TIME = {elezioni_wait_time}
+    ELEZIONI_INTERVAL_MINUTES = {elezioni_interval_minutes}
 """.format(
             coinclick=config["COINCLICK_POSITION"],
             memory=config["MEMORY_POSITION"],
@@ -535,7 +543,8 @@ class GameConfigGUI:
             elezioni_voto1=config["ELEZIONI_VOTO1_POSITION"],
             elezioni_voto2=config["ELEZIONI_VOTO2_POSITION"],
             elezioni_scroll=config["ELEZIONI_SCROLL"],
-            elezioni_wait_time=config["ELEZIONI_WAIT_TIME"]
+            elezioni_wait_time=config["ELEZIONI_WAIT_TIME"],
+            elezioni_interval_minutes=config["ELEZIONI_INTERVAL_MINUTES"]
         )
         
         with open(file_path, 'w') as f:
