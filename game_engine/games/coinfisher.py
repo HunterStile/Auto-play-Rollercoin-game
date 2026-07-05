@@ -59,10 +59,10 @@ class CoinFisherBot(BaseGame):
 
         rx, ry, rw, rh = self.region
 
-        # Target: click near the back of the play area (far end)
-        # The harpoon goes all the way back and collects coins on return
+        # Target: click near the TOP of the play area to fire harpoon upward
+        # The harpoon shoots up, hits the top, and collects coins on the way back
         target_x = rx + rw // 2
-        target_y = ry + rh - 100  # Near the bottom (where hamster is)
+        target_y = ry + 80  # Near the top of the game area
 
         try:
             while time.time() - start_time < self.game_duration:
