@@ -1,34 +1,32 @@
 """
 Token Blaster Game Bot.
 
-Space Invaders-style shooter: ship follows cursor, click to shoot enemies.
+Space Invaders-style shooter: move ship with mouse, click to shoot enemies.
 Uses pixel color scanning to detect enemies and auto-aim.
+Press 'q' at any time to stop the bot.
 """
 
 import pyautogui
 import time
-from typing import Tuple, Optional
+import keyboard
+from typing import Tuple, List
 
 from game_engine.base import BaseGame
 from game_engine.registry import register_game
 
 # Enemy colors: (R, G, B) signatures
 ENEMY_COLORS = {
-    'red':   (220, 50, 50),
-    'green': (50, 200, 50),
-    'white': (240, 240, 240),
+    'red':    (220, 50, 50),
+    'green':  (50, 200, 50),
+    'white':  (240, 240, 240),
+    'yellow': (220, 220, 50),
+    'pink':   (220, 50, 200),
 }
 
 # End-screen detection color
 END_SCREEN_COLOR = (3, 225, 228)
 
-# Default scan region - will be calibrated
-DEFAULT_REGION = (200, 150, 900, 600)
-
-# Projectile detection color (bright yellow/white)
-PROJECTILE_COLOR = (255, 255, 100)
-
-COLOR_TOLERANCE = 25
+COLOR_TOLERANCE = 30
 
 
 @register_game
@@ -39,141 +37,135 @@ class TokenBlasterBot(BaseGame):
 
     def __init__(self, config=None):
         super().__init__(config)
-        self.region = config.get('scan_region', DEFAULT_REGION) if config else DEFAULT_REGION
         self.game_duration = 65  # seconds
-        self.shoot_cooldown = 0.15  # seconds between shots
-
-    def _in_region(self, x: int, y: int) -> bool:
-        """Check if coordinates are within the game region."""
-        rx, ry, rw, rh = self.region
-        return rx <= x <= rx + rw and ry <= y <= ry + rh
+        self.shoot_cooldown = 0.2  # seconds between shots
+        self.dodge_direction = 1  # 1 = right, -1 = left
 
     def _color_match(self, target: Tuple[int, int, int], actual: Tuple[int, int, int],
                      tolerance: int = COLOR_TOLERANCE) -> bool:
         return all(abs(t - a) <= tolerance for t, a in zip(target, actual))
 
-    def _find_enemies(self) -> list:
-        """Scan the game region and return list of enemy positions."""
+    def _find_enemies(self) -> List[Tuple[int, int]]:
+        """Scan the screen for enemy positions and return them sorted by priority (closest to bottom)."""
         enemies = []
-        rx, ry, rw, rh = self.region
+        screenshot = pyautogui.screenshot()
+        w, h = screenshot.size
 
-        pic = pyautogui.screenshot(region=self.region)
+        # Scan the upper 60% of the screen where enemies are
+        scan_h = int(h * 0.6)
+        step = 12  # scan step for speed
 
-        for x in range(0, rw, 10):  # step 10 for speed
-            for y in range(0, rh, 10):
-                r, g, b = pic.getpixel((x, y))
+        for x in range(0, w, step):
+            for y in range(0, scan_h, step):
+                try:
+                    r, g, b = screenshot.getpixel((x, y))
+                    for enemy_type, color in ENEMY_COLORS.items():
+                        if self._color_match(color, (r, g, b)):
+                            enemies.append((x, y, enemy_type))
+                            break
+                except Exception:
+                    pass
 
-                # Check each enemy color
-                for enemy_type, color in ENEMY_COLORS.items():
-                    if self._color_match(color, (r, g, b)):
-                        enemies.append((rx + x, ry + y))
-                        break
+        # Remove duplicates (nearby pixels of same enemy)
+        deduped = []
+        for ex, ey, etype in enemies:
+            if not any(abs(ex - dx) < 30 and abs(ey - dy) < 30 for dx, dy, _ in deduped):
+                deduped.append((ex, ey, etype))
 
-        return enemies
+        # Sort: closest to bottom = highest priority
+        deduped.sort(key=lambda e: -e[1])
 
-    def _find_projectile(self) -> Optional[Tuple[int, int]]:
-        """Scan near the ship for incoming projectiles."""
-        ship_x, ship_y = pyautogui.position()
-        rx, ry, rw, rh = self.region
-
-        # Scan a small area above the ship
-        scan_y_start = max(ry, ship_y - 100)
-        scan_y_end = min(ry + rh, ship_y)
-        scan_x_start = max(rx, ship_x - 80)
-        scan_x_end = min(rx + rw, ship_x + 80)
-
-        if scan_y_end <= scan_y_start or scan_x_end <= scan_x_start:
-            return None
-
-        region = (scan_x_start, scan_y_start,
-                  scan_x_end - scan_x_start, scan_y_end - scan_y_start)
-
-        try:
-            pic = pyautogui.screenshot(region=region)
-            for x in range(0, pic.size[0], 5):
-                for y in range(0, pic.size[1], 5):
-                    r, g, b = pic.getpixel((x, y))
-                    if self._color_match(PROJECTILE_COLOR, (r, g, b), tolerance=40):
-                        return (scan_x_start + x, scan_y_start + y)
-        except Exception:
-            pass
-
-        return None
+        return deduped
 
     def _is_end_screen(self) -> bool:
         """Check if the game has ended."""
-        rx, ry, rw, rh = self.region
-        # Check a few spots near the center
+        screenshot = pyautogui.screenshot()
+        w, h = screenshot.size
         check_points = [
-            (rx + rw // 2, ry + rh // 2),
-            (rx + rw // 2, ry + rh - 50),
-            (rx + rw // 2, ry + 50),
+            (w // 2, h // 2),
+            (w // 2, h - 100),
+            (w // 3, h // 2),
+            (2 * w // 3, h // 2),
         ]
         for px, py in check_points:
-            r, g, b = pyautogui.pixel(px, py)
-            if self._color_match(END_SCREEN_COLOR, (r, g, b), tolerance=5):
-                return True
+            try:
+                r, g, b = screenshot.getpixel((px, py))
+                if (abs(r - END_SCREEN_COLOR[0]) <= 5 and
+                    abs(g - END_SCREEN_COLOR[1]) <= 5 and
+                    abs(b - END_SCREEN_COLOR[2]) <= 5):
+                    return True
+            except Exception:
+                pass
         return False
 
     def play(self) -> bool:
         """Play one round of Token Blaster."""
         print("START Token Blaster")
-        start_time = time.time()
+        print("  Press 'q' to stop the bot")
+
+        screen_w, screen_h = pyautogui.size()
+        ship_y = int(screen_h * 0.85)  # Ship is near bottom
+        dodge_x = screen_w // 2
         last_shot = 0
+        dodge_timer = time.time()
 
         try:
-            # Hold mouse button to activate ship following
-            rx, ry, rw, rh = self.region
-            center_x, center_y = rx + rw // 2, ry + rh // 2
-            pyautogui.moveTo(center_x, center_y)
-            pyautogui.mouseDown()
+            while time.time() - dodge_timer < self.game_duration:
+                # Check 'q' key to quit
+                if keyboard.is_pressed('q'):
+                    print("\n  'q' pressed - stopping!")
+                    break
 
-            while time.time() - start_time < self.game_duration:
+                start_time = time.time()
+
                 # Check end screen
                 if self._is_end_screen():
-                    print("End screen detected - game complete!")
+                    print("  End screen detected - game complete!")
                     break
 
                 # Find enemies
                 enemies = self._find_enemies()
 
-                # Find projectiles
-                projectile = self._find_projectile()
+                # Dodge: continuous horizontal zig-zag at ship level
+                now_dodge = time.time()
+                if now_dodge - dodge_timer > 0.5:
+                    self.dodge_direction *= -1
+                    dodge_timer = now_dodge
 
-                if projectile:
-                    # Dodge! Move away from projectile
-                    px, py = projectile
-                    ship_x, ship_y = pyautogui.position()
-                    # Move horizontally away
-                    dodge_x = ship_x + (80 if px < ship_x else -80)
-                    dodge_x = max(rx, min(rx + rw, dodge_x))
-                    pyautogui.moveTo(dodge_x, ship_y, duration=0.1)
-                    continue
+                dodge_speed = 8  # pixels per frame
+                dodge_x += dodge_speed * self.dodge_direction
+                # Keep in bounds
+                margin = 100
+                dodge_x = max(margin, min(screen_w - margin, dodge_x))
 
                 if enemies:
-                    # Aim at nearest enemy (highest y = closest to bottom = priority)
-                    target = max(enemies, key=lambda e: e[1])
+                    # Aim at the lowest enemy (closest to ship = highest priority)
+                    _, ey, etype = enemies[0]
+                    aim_x = enemies[0][0]
+                    aim_y = ey
+
+                    # Move ship under the enemy for a clear shot
+                    pyautogui.moveTo(aim_x, ship_y, duration=0.05)
 
                     # Shoot if cooldown passed
                     now = time.time()
                     if now - last_shot > self.shoot_cooldown:
-                        pyautogui.click(target[0], target[1])
+                        pyautogui.click(aim_x, aim_y)
                         last_shot = now
+                        print(f"  Shot at {etype} enemy ({aim_x}, {aim_y})")
+
                 else:
-                    # No enemies visible, sweep
-                    sweep_x = rx + ((time.time() * 100) % rw)
-                    pyautogui.moveTo(sweep_x, ry + rh * 0.7)
+                    # No enemies - just dodge at ship level
+                    pyautogui.moveTo(dodge_x, ship_y, duration=0.05)
 
-                time.sleep(0.05)
+                # Maintain ~20fps
+                elapsed = time.time() - start_time
+                if elapsed < 0.05:
+                    time.sleep(0.05 - elapsed)
 
-            pyautogui.mouseUp()
             print("END Token Blaster")
             return True
 
         except Exception as e:
-            print(f"Error in Token Blaster: {e}")
-            try:
-                pyautogui.mouseUp()
-            except Exception:
-                pass
+            print(f"  Error in Token Blaster: {e}")
             return False

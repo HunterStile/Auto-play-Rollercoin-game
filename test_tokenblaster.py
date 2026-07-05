@@ -1,4 +1,5 @@
-"""Standalone test for Token Blaster bot - run this to test without the full routine."""
+"""Standalone test for Token Blaster bot - run this to test without the full routine.
+Press 'q' at any time to stop the bot."""
 import sys
 import pyautogui
 from time import sleep
@@ -11,7 +12,8 @@ print("=" * 50)
 print("Token Blaster - Standalone Test")
 print("=" * 50)
 print("\nMake sure RollerCoin Token Blaster game is open and started!")
-print("Starting in 3 seconds...")
+print("Press 'q' at any time to stop the bot")
+print("\nStarting in 3 seconds...")
 sleep(3)
 
 bot = TokenBlasterBot({})
