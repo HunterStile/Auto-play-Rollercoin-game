@@ -1,10 +1,10 @@
 """
 Token Blaster Game Bot.
 
-Space Invaders-style shooter:
-- LEFT/RIGHT arrow keys = move ship
-- SPACE held continuously = auto-fire
-- Projectile detection: scans for enemy bullets and dodges
+Space Invaders shooter - smart strategy:
+- Stay still + auto-fire at aligned enemy
+- Only move to: dodge projectiles OR aim at new enemy
+- Tracks current target, switches when enemy is dead
 Press 'q' to stop.
 """
 
@@ -26,7 +26,6 @@ ENEMY_COLORS = {
     'pink':   (220, 50, 200),
 }
 
-END_SCREEN_COLOR = (3, 225, 228)
 COLOR_TOLERANCE = 30
 
 
@@ -34,7 +33,7 @@ COLOR_TOLERANCE = 30
 class TokenBlasterBot(BaseGame):
     game_id = 'tokenblaster'
     display_name = 'Token Blaster'
-    description = 'Space shooter: auto-fire + projectile detection + dodge'
+    description = 'Smart shooter: auto-fire, projectile dodge, target tracking'
 
     def __init__(self, config=None):
         super().__init__(config)
@@ -43,10 +42,11 @@ class TokenBlasterBot(BaseGame):
         return all(abs(t - a) <= tolerance for t, a in zip(target, actual))
 
     def _find_enemies(self, ship_x: int) -> List[Tuple[int, int, str]]:
+        """Find all enemies, sorted by priority (closest to ship first, then closest X)."""
         enemies = []
         screenshot = pyautogui.screenshot()
         w, h = screenshot.size
-        scan_h = int(h * 0.6)
+        scan_h = int(h * 0.55)
 
         for x in range(0, w, 15):
             for y in range(0, scan_h, 15):
@@ -59,67 +59,51 @@ class TokenBlasterBot(BaseGame):
                 except Exception:
                     pass
 
+        # Deduplicate
         deduped = []
         for ex, ey, etype in enemies:
-            if not any(abs(ex - dx) < 30 and abs(ey - dy) < 30 for dx, dy, _ in deduped):
+            if not any(abs(ex - dx) < 35 and abs(ey - dy) < 35 for dx, dy, _ in deduped):
                 deduped.append((ex, ey, etype))
 
+        # Sort: lowest (closest to ship) first, then nearest X
         deduped.sort(key=lambda e: (-e[1], abs(e[0] - ship_x)))
         return deduped
 
-    def _detect_projectile_near_ship(self, ship_x: int, ship_y: int) -> Optional[str]:
+    def _has_projectile_near(self, ship_x: int, ship_y: int, margin: int = 120) -> bool:
         """
-        Scan a box around/above the ship for enemy projectiles.
-        Projectiles are bright white/yellow dots, smaller than enemies.
-        Returns 'left', 'right', or None if no threat.
+        Quick scan: are there any projectiles near the ship?
+        Scans a thin strip above the ship for bright fast-moving dots.
         """
-        screen_w, screen_h = pyautogui.size()
-        # Scan a rectangle above the ship
-        scan_w = 200
-        scan_h = int(ship_y * 0.5)  # from top of screen down to ship area
-        scan_x = max(0, ship_x - scan_w // 2)
-        scan_y = max(0, ship_y - scan_h)
-        scan_width = min(scan_w, screen_w - scan_x)
-        scan_height = ship_y - scan_y
+        screen_w = pyautogui.size()[0]
+        scan_x = max(0, ship_x - margin)
+        scan_w = min(margin * 2, screen_w - scan_x)
+        scan_y = max(0, ship_y - 250)
+        scan_h = ship_y - scan_y
 
-        if scan_width <= 0 or scan_height <= 0:
-            return None
+        if scan_w < 10 or scan_h < 10:
+            return False
 
         try:
-            region = (scan_x, scan_y, scan_width, scan_height)
-            pic = pyautogui.screenshot(region=region)
-
-            left_threats = 0
-            right_threats = 0
-
-            for x in range(0, pic.size[0], 6):
-                for y in range(0, pic.size[1], 6):
+            pic = pyautogui.screenshot(region=(scan_x, scan_y, scan_w, scan_h))
+            threat_count = 0
+            for x in range(0, scan_w, 10):
+                for y in range(0, scan_h, 10):
                     r, g, b = pic.getpixel((x, y))
-                    # Projectiles are bright (R+G+B > 500) but not the same as enemy colors
                     brightness = r + g + b
-                    if brightness > 500:
-                        # Check it's not an enemy (enemies have specific colors)
-                        is_enemy = False
-                        for ecolor in ENEMY_COLORS.values():
-                            if self._color_match(ecolor, (r, g, b)):
-                                is_enemy = True
-                                break
+                    # Bright small dot = likely projectile
+                    if brightness > 550 and r > 180 and g > 180:
+                        # Not an enemy color?
+                        is_enemy = any(
+                            self._color_match(c, (r, g, b))
+                            for c in ENEMY_COLORS.values()
+                        )
                         if not is_enemy:
-                            # It's a projectile! Is it on left or right side?
-                            if x < pic.size[0] // 2:
-                                left_threats += 1
-                            else:
-                                right_threats += 1
-
-            if left_threats > right_threats and left_threats > 5:
-                return 'left'
-            elif right_threats > left_threats and right_threats > 5:
-                return 'right'
-
+                            threat_count += 1
+                            if threat_count > 4:
+                                return True
         except Exception:
             pass
-
-        return None
+        return False
 
     def _is_end_screen(self) -> bool:
         screenshot = pyautogui.screenshot()
@@ -127,7 +111,7 @@ class TokenBlasterBot(BaseGame):
         for px, py in [(w // 2, h // 2), (w // 2, h - 100)]:
             try:
                 r, g, b = screenshot.getpixel((px, py))
-                if (abs(r - 3) <= 5 and abs(g - 225) <= 5 and abs(b - 228) <= 5):
+                if abs(r - 3) <= 5 and abs(g - 225) <= 5 and abs(b - 228) <= 5:
                     return True
             except Exception:
                 pass
@@ -135,23 +119,22 @@ class TokenBlasterBot(BaseGame):
 
     def play(self) -> bool:
         print("START Token Blaster")
-        print("  SPACE held = auto-fire, LEFT/RIGHT = move/dodge, Q = quit")
+        print("  SPACE=auto-fire, arrows=move, Q=quit")
         time.sleep(2)
 
         screen_w, screen_h = pyautogui.size()
-        ship_y = int(screen_h * 0.88)  # ship near bottom
+        ship_y = int(screen_h * 0.88)
         ship_x = screen_w // 2
 
-        # Click to focus browser
         pyautogui.click(screen_w // 2, screen_h // 2)
         time.sleep(0.3)
-
-        # Hold space for continuous fire
         pyautogui.keyDown('space')
 
         start_time = time.time()
-        last_move_time = 0
-        move_cooldown = 0.15  # don't spam movement keys
+        last_move = 0
+        last_projectile_scan = 0
+        target_ex = None  # current target X
+        target_stuck_since = 0  # how long we've been on same target
 
         try:
             while time.time() - start_time < 65:
@@ -165,43 +148,51 @@ class TokenBlasterBot(BaseGame):
 
                 now = time.time()
 
-                # 1. Check for projectiles - DODGE is highest priority
-                threat = self._detect_projectile_near_ship(ship_x, ship_y)
-
-                if threat and now - last_move_time > move_cooldown:
-                    if threat == 'left':
-                        # Projectiles on left - dodge RIGHT
-                        pyautogui.press('right')
-                        ship_x = min(screen_w - 50, ship_x + 30)
-                        print(f"  Dodge RIGHT! (threat: {threat})")
-                    else:
-                        # Projectiles on right - dodge LEFT
-                        pyautogui.press('left')
-                        ship_x = max(50, ship_x - 30)
-                        print(f"  Dodge LEFT! (threat: {threat})")
-                    last_move_time = now
-                    time.sleep(0.1)
-                    continue
+                # 1. Projectile check (every 0.2s to save CPU)
+                if now - last_projectile_scan > 0.2:
+                    last_projectile_scan = now
+                    if self._has_projectile_near(ship_x, ship_y):
+                        # Dodge: move sideways quickly
+                        dodge_dir = 1 if ship_x < screen_w // 2 else -1
+                        for _ in range(2):
+                            pyautogui.press('right' if dodge_dir > 0 else 'left')
+                            time.sleep(0.03)
+                        ship_x = max(80, min(screen_w - 80, ship_x + dodge_dir * 50))
+                        print(f"  Dodge! ship_x={ship_x}")
+                        last_move = now
+                        continue
 
                 # 2. Find enemies
                 enemies = self._find_enemies(ship_x)
 
                 if enemies:
                     ex, ey, etype = enemies[0]
+
+                    # Track target - if same enemy for too long, it's probably dead
+                    if target_ex is not None and abs(ex - target_ex) < 40:
+                        # Same target area
+                        if now - target_stuck_since > 4.0:
+                            # Been on this target too long, force switch
+                            if len(enemies) > 1:
+                                ex, ey, etype = enemies[1]  # switch to 2nd best
+                                print(f"  Switching target: {ex},{ey} ({etype})")
+                                target_stuck_since = now
+                    else:
+                        target_ex = ex
+                        target_stuck_since = now
+
                     x_dist = ex - ship_x
 
-                    # Only move if not aligned (enemy is far horizontally)
-                    if abs(x_dist) > 50 and now - last_move_time > move_cooldown:
+                    # Move only if we need to aim at different enemy
+                    if abs(x_dist) > 60 and now - last_move > 0.15:
                         if x_dist < 0:
                             pyautogui.press('left')
-                            ship_x = max(50, ship_x - 15)
+                            ship_x = max(80, ship_x - 20)
                         else:
                             pyautogui.press('right')
-                            ship_x = min(screen_w - 50, ship_x + 15)
-                        last_move_time = now
-                    # If aligned: stay still, space is held = shooting
-
-                # 3. If no enemies and no threats: stay completely still
+                            ship_x = min(screen_w - 80, ship_x + 20)
+                        last_move = now
+                    # else: aligned, stay still and fire
 
                 time.sleep(0.05)
 
