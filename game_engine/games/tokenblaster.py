@@ -124,15 +124,6 @@ class TokenBlasterBot(BaseGame):
                 # Find enemies
                 enemies = self._find_enemies(ship_x)
 
-                # Debug log every ~3 seconds
-                frame = getattr(self, '_frame', 0) + 1
-                self._frame = frame
-                if frame % 60 == 0:
-                    if enemies:
-                        print(f"  [DEBUG] {len(enemies)} enemies, closest: {enemies[0]}")
-                    else:
-                        print(f"  [DEBUG] No enemies (ship_x={ship_x})")
-
                 if enemies:
                     # Target the best enemy (already sorted by priority)
                     ex, ey, etype = enemies[0]
