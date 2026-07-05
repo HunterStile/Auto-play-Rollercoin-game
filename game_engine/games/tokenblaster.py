@@ -1,8 +1,9 @@
 """
 Token Blaster Game Bot.
 
-Space Invaders-style shooter: move ship with mouse, click to shoot enemies.
-Uses pixel color scanning to detect enemies and auto-aim.
+Space Invaders-style shooter controlled with ARROW KEYS:
+- LEFT/RIGHT = move ship
+- UP = shoot
 Press 'q' at any time to stop the bot.
 """
 
@@ -13,6 +14,9 @@ from typing import Tuple, List
 
 from game_engine.base import BaseGame
 from game_engine.registry import register_game
+
+# Disable fail-safe so mouse doesn't crash the bot
+pyautogui.FAILSAFE = False
 
 # Enemy colors: (R, G, B) signatures
 ENEMY_COLORS = {
@@ -33,47 +37,46 @@ COLOR_TOLERANCE = 30
 class TokenBlasterBot(BaseGame):
     game_id = 'tokenblaster'
     display_name = 'Token Blaster'
-    description = 'Space shooter: auto-aim and shoot enemies via color detection'
+    description = 'Space shooter: arrow keys to move and shoot, color detection for enemies'
 
     def __init__(self, config=None):
         super().__init__(config)
-        self.game_duration = 65  # seconds
-        self.shoot_cooldown = 0.2  # seconds between shots
-        self.dodge_direction = 1  # 1 = right, -1 = left
+        self.game_duration = 65
+        self.shoot_cooldown = 0.15
+        self.move_speed = 0.08  # how long to hold left/right
 
     def _color_match(self, target: Tuple[int, int, int], actual: Tuple[int, int, int],
                      tolerance: int = COLOR_TOLERANCE) -> bool:
         return all(abs(t - a) <= tolerance for t, a in zip(target, actual))
 
-    def _find_enemies(self) -> List[Tuple[int, int]]:
-        """Scan the screen for enemy positions and return them sorted by priority (closest to bottom)."""
+    def _find_enemies(self, ship_x: int) -> List[Tuple[int, int, str]]:
+        """Scan the screen for enemies. Returns list of (x, y, type) sorted by priority."""
         enemies = []
         screenshot = pyautogui.screenshot()
         w, h = screenshot.size
 
-        # Scan the upper 60% of the screen where enemies are
         scan_h = int(h * 0.6)
-        step = 12  # scan step for speed
+        step = 15
 
         for x in range(0, w, step):
             for y in range(0, scan_h, step):
                 try:
                     r, g, b = screenshot.getpixel((x, y))
-                    for enemy_type, color in ENEMY_COLORS.items():
+                    for etype, color in ENEMY_COLORS.items():
                         if self._color_match(color, (r, g, b)):
-                            enemies.append((x, y, enemy_type))
+                            enemies.append((x, y, etype))
                             break
                 except Exception:
                     pass
 
-        # Remove duplicates (nearby pixels of same enemy)
+        # Deduplicate nearby hits
         deduped = []
         for ex, ey, etype in enemies:
             if not any(abs(ex - dx) < 30 and abs(ey - dy) < 30 for dx, dy, _ in deduped):
                 deduped.append((ex, ey, etype))
 
-        # Sort: closest to bottom = highest priority
-        deduped.sort(key=lambda e: -e[1])
+        # Sort: closest to ship (highest Y) first, then closest X to ship
+        deduped.sort(key=lambda e: (-e[1], abs(e[0] - ship_x)))
 
         return deduped
 
@@ -84,8 +87,6 @@ class TokenBlasterBot(BaseGame):
         check_points = [
             (w // 2, h // 2),
             (w // 2, h - 100),
-            (w // 3, h // 2),
-            (2 * w // 3, h // 2),
         ]
         for px, py in check_points:
             try:
@@ -99,69 +100,72 @@ class TokenBlasterBot(BaseGame):
         return False
 
     def play(self) -> bool:
-        """Play one round of Token Blaster."""
+        """Play one round of Token Blaster using arrow keys."""
         print("START Token Blaster")
-        print("  Press 'q' to stop the bot")
+        print("  Controls: LEFT/RIGHT = move, UP = shoot, Q = quit")
 
-        screen_w, screen_h = pyautogui.size()
-        ship_y = int(screen_h * 0.85)  # Ship is near bottom
-        dodge_x = screen_w // 2
+        screen_w = pyautogui.size()[0]
+        ship_x = screen_w // 2  # assume ship starts at center
         last_shot = 0
+        dodge_dir = 1
         dodge_timer = time.time()
+        phase = 'dodge'  # 'dodge' or 'shoot'
 
         try:
-            while time.time() - dodge_timer < self.game_duration:
-                # Check 'q' key to quit
+            while True:
                 if keyboard.is_pressed('q'):
                     print("\n  'q' pressed - stopping!")
                     break
 
-                start_time = time.time()
-
-                # Check end screen
                 if self._is_end_screen():
                     print("  End screen detected - game complete!")
                     break
 
                 # Find enemies
-                enemies = self._find_enemies()
-
-                # Dodge: continuous horizontal zig-zag at ship level
-                now_dodge = time.time()
-                if now_dodge - dodge_timer > 0.5:
-                    self.dodge_direction *= -1
-                    dodge_timer = now_dodge
-
-                dodge_speed = 8  # pixels per frame
-                dodge_x += dodge_speed * self.dodge_direction
-                # Keep in bounds
-                margin = 100
-                dodge_x = max(margin, min(screen_w - margin, dodge_x))
+                enemies = self._find_enemies(ship_x)
 
                 if enemies:
-                    # Aim at the lowest enemy (closest to ship = highest priority)
-                    _, ey, etype = enemies[0]
-                    aim_x = enemies[0][0]
-                    aim_y = ey
+                    # Target the best enemy (already sorted by priority)
+                    ex, ey, etype = enemies[0]
+                    x_dist = ex - ship_x
 
-                    # Move ship under the enemy for a clear shot
-                    pyautogui.moveTo(aim_x, ship_y, duration=0.05)
-
-                    # Shoot if cooldown passed
-                    now = time.time()
-                    if now - last_shot > self.shoot_cooldown:
-                        pyautogui.click(aim_x, aim_y)
-                        last_shot = now
-                        print(f"  Shot at {etype} enemy ({aim_x}, {aim_y})")
-
+                    if abs(x_dist) < 40:
+                        # Aligned! Shoot
+                        if time.time() - last_shot > self.shoot_cooldown:
+                            pyautogui.press('up')
+                            last_shot = time.time()
+                            print(f"  Shot at {etype} enemy ({ex}, {ey})")
+                            dodge_dir *= -1  # dodge after shooting
+                    elif x_dist < 0:
+                        # Enemy is left - move left
+                        pyautogui.keyDown('left')
+                        time.sleep(self.move_speed)
+                        pyautogui.keyUp('left')
+                        ship_x = max(50, ship_x - 20)
+                    else:
+                        # Enemy is right - move right
+                        pyautogui.keyDown('right')
+                        time.sleep(self.move_speed)
+                        pyautogui.keyUp('right')
+                        ship_x = min(screen_w - 50, ship_x + 20)
                 else:
-                    # No enemies - just dodge at ship level
-                    pyautogui.moveTo(dodge_x, ship_y, duration=0.05)
+                    # No enemies - dodge
+                    if time.time() - dodge_timer > 1.0:
+                        dodge_dir *= -1
+                        dodge_timer = time.time()
 
-                # Maintain ~20fps
-                elapsed = time.time() - start_time
-                if elapsed < 0.05:
-                    time.sleep(0.05 - elapsed)
+                    if dodge_dir > 0:
+                        pyautogui.keyDown('right')
+                        time.sleep(0.3)
+                        pyautogui.keyUp('right')
+                        ship_x = min(screen_w - 50, ship_x + 60)
+                    else:
+                        pyautogui.keyDown('left')
+                        time.sleep(0.3)
+                        pyautogui.keyUp('left')
+                        ship_x = max(50, ship_x - 60)
+
+                time.sleep(0.05)
 
             print("END Token Blaster")
             return True
@@ -169,3 +173,10 @@ class TokenBlasterBot(BaseGame):
         except Exception as e:
             print(f"  Error in Token Blaster: {e}")
             return False
+        finally:
+            # Always release keys on exit
+            for key in ['up', 'down', 'left', 'right', 'space']:
+                try:
+                    pyautogui.keyUp(key)
+                except Exception:
+                    pass
