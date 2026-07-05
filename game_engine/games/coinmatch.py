@@ -40,7 +40,7 @@ class CoinMatchBot(BaseGame):
         self.color_tolerance = 20
         self.game_duration = 60  # seconds
 
-    # ── Color Helpers ────────────────────────────────────────────────────
+    # -- Color Helpers ----------------------------------------------------
 
     @staticmethod
     def _are_colors_similar(color1: tuple, color2: tuple) -> bool:
@@ -66,7 +66,7 @@ class CoinMatchBot(BaseGame):
                 return coin_type
         return None
 
-    # ── Grid ─────────────────────────────────────────────────────────────
+    # -- Grid -------------------------------------------------------------
 
     def _grid_pos(self, row: int, col: int) -> Tuple[int, int]:
         """Get screen position for a grid cell."""
@@ -84,7 +84,7 @@ class CoinMatchBot(BaseGame):
                 grid[row][col] = self._get_coin_type(x, y)
         return grid
 
-    # ── Move Evaluation ──────────────────────────────────────────────────
+    # -- Move Evaluation --------------------------------------------------
 
     def _evaluate_move(self, grid, r1, c1, r2, c2) -> Tuple[int, list, str, str]:
         """Simulate a swap and return the score it would produce."""
@@ -161,7 +161,7 @@ class CoinMatchBot(BaseGame):
             print(f"Best move: {best_move}, score: {best_score}")
         return best_move if best_score > 0 else None
 
-    # ── Actions ──────────────────────────────────────────────────────────
+    # -- Actions ----------------------------------------------------------
 
     def _make_move(self, r1: int, c1: int, r2: int, c2: int):
         """Execute a swap on screen."""
@@ -175,7 +175,7 @@ class CoinMatchBot(BaseGame):
         pyautogui.mouseUp()
         time.sleep(0.5)
 
-    # ── Main Loop ────────────────────────────────────────────────────────
+    # -- Main Loop --------------------------------------------------------
 
     def play(self) -> bool:
         """Play one round of CoinMatch."""

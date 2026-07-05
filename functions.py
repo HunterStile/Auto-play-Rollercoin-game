@@ -1,7 +1,7 @@
 """
 Backward-compatible re-exports from game_engine.
 
-⚠️ DEPRECATED: New code should import directly from game_engine.
+!! DEPRECATED: New code should import directly from game_engine.
 This file exists so existing scripts (CoinClick.py, CoinFlip.py, etc.)
 continue to work without changes.
 """
@@ -29,7 +29,7 @@ from typing import List, Tuple
 import random
 import time
 
-# ── Legacy aliases ──────────────────────────────────────────────────────────
+# -- Legacy aliases ----------------------------------------------------------
 
 # Arrow key constants
 giu = 'down'

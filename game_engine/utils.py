@@ -12,7 +12,7 @@ from time import sleep
 from typing import Tuple
 
 
-# ─── Mouse & Keyboard Wrappers ───────────────────────────────────────────────
+# --- Mouse & Keyboard Wrappers -----------------------------------------------
 
 def click(x: int, y: int):
     """Click at screen position."""
@@ -49,7 +49,7 @@ def press_key(key: str):
     pyautogui.press(key)
 
 
-# ─── Image Comparison ────────────────────────────────────────────────────────
+# --- Image Comparison --------------------------------------------------------
 
 def image_similarity(image1, image2) -> float:
     """Return RMS difference between two PIL images. Lower = more similar."""
@@ -78,7 +78,7 @@ def get_game_screenshot(region: Tuple[int, int, int, int] = None):
     return ImageGrab.grab()
 
 
-# ─── Game Orchestrator Helpers ──────────────────────────────────────────────
+# --- Game Orchestrator Helpers ----------------------------------------------
 
 def wait_game_ready(game_position: Tuple[int, int], max_attempts: int = 3) -> bool:
     """

@@ -72,7 +72,7 @@ class GameConfigGUI:
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.root.mainloop()
 
-    # ── Dynamic Variable Initialization ──────────────────────────────────
+    # -- Dynamic Variable Initialization ----------------------------------
 
     def _init_variables(self):
         """Dynamically create StringVars for all discovered games."""
@@ -136,7 +136,7 @@ class GameConfigGUI:
         self.elezioni_wait_time = tk.StringVar(value="5")
         self.elezioni_interval_minutes = tk.StringVar(value="60")
 
-    # ── UI Creation ──────────────────────────────────────────────────────
+    # -- UI Creation ------------------------------------------------------
 
     def _create_position_settings(self):
         """Dynamically create position fields for all games."""
@@ -274,8 +274,8 @@ class GameConfigGUI:
 
         warning_label = ttk.Label(
             elezioni_frame,
-            text="⚠️ ATTENZIONE: Se abiliti le elezioni, il bot eseguirà SOLO le elezioni in loop.\n"
-                 "Se disabiliti, eseguirà SOLO i giochi.",
+            text="!! ATTENZIONE: Se abiliti le elezioni, il bot eseguira SOLO le elezioni in loop.\n"
+                 "Se disabiliti, eseguira SOLO i giochi.",
             foreground="red",
             font=('Helvetica', 9, 'bold')
         )
@@ -339,7 +339,7 @@ class GameConfigGUI:
             side=tk.RIGHT, padx=5
         )
 
-    # ── Bot Control ──────────────────────────────────────────────────────
+    # -- Bot Control ------------------------------------------------------
 
     def toggle_bot(self):
         if self.bot_process is None:
@@ -367,7 +367,7 @@ class GameConfigGUI:
         else:
             self.root.destroy()
 
-    # ── Position Finder ──────────────────────────────────────────────────
+    # -- Position Finder --------------------------------------------------
 
     def find_position(self, x_var, y_var):
         """Find mouse position using external script."""
@@ -381,7 +381,7 @@ class GameConfigGUI:
             x_var.set(str(pos[0]))
             y_var.set(str(pos[1]))
 
-    # ── Game Order ──────────────────────────────────────────────────────
+    # -- Game Order ------------------------------------------------------
 
     def get_game_order(self):
         """Return enabled games sorted by their order value."""
@@ -397,7 +397,7 @@ class GameConfigGUI:
         enabled.sort(key=lambda x: x[0])
         return [gid for _, gid in enabled]
 
-    # ── Save / Load Config ──────────────────────────────────────────────
+    # -- Save / Load Config ----------------------------------------------
 
     def save_config(self):
         """Dynamically build and save configuration."""
@@ -532,28 +532,28 @@ class GameConfigGUI:
         except Exception as e:
             print(f"Error loading configuration: {str(e)}")
 
-    # ── Config File Generation ──────────────────────────────────────────
+    # -- Config File Generation ------------------------------------------
 
     def generate_config_file(self, config, file_path='Routine_config.py'):
         """Dynamically generate the Routine_config.py file."""
         lines = ['class GameRoutineConfig:']
 
         # Game positions
-        lines.append('    # ── Game Positions ──')
+        lines.append('    # == Game Positions ==')
         for game in self.games:
             prefix = game.get_config_prefix()
             pos = config.get(f'{prefix}_POSITION', (960, 400))
             lines.append(f'    {prefix}_POSITION = {pos}')
 
         lines.append('')
-        lines.append('    # ── Start Button Positions ──')
+        lines.append('    # == Start Button Positions ==')
         for game in self.games:
             prefix = game.get_config_prefix()
             start = config.get(f'{prefix}_START', (990, 450))
             lines.append(f'    {prefix}_START = {start}')
 
         lines.append('')
-        lines.append('    # ── General Settings ──')
+        lines.append('    # == General Settings ==')
         lines.append(f'    GAIN_POWER_POSITION = {config.get("GAIN_POWER_POSITION", (967, 645))}')
         lines.append(f'    scroll_down = {config.get("scroll_down", -390)}')
         lines.append(f'    BANNER_EVENT = {config.get("BANNER_EVENT", True)}')
@@ -565,11 +565,11 @@ class GameConfigGUI:
             lines.append(f'    LEVEL_MEMORY = {int(self.difficulty_vars["coinflip"].get())}')
 
         lines.append('')
-        lines.append('    # ── Game Order ──')
+        lines.append('    # == Game Order ==')
         lines.append(f'    GAME_ORDER = {config.get("GAME_ORDER", [])}')
 
         lines.append('')
-        lines.append('    # ── Elections ──')
+        lines.append('    # == Elections ==')
         lines.append(f'    ELEZIONI_ENABLED = {config.get("ELEZIONI_ENABLED", False)}')
         lines.append(f'    ELEZIONI_VOTO1_POSITION = {config.get("ELEZIONI_VOTO1_POSITION", (446, 724))}')
         lines.append(f'    ELEZIONI_VOTO2_POSITION = {config.get("ELEZIONI_VOTO2_POSITION", (1358, 720))}')
@@ -577,7 +577,7 @@ class GameConfigGUI:
         lines.append(f'    ELEZIONI_WAIT_TIME = {config.get("ELEZIONI_WAIT_TIME", 5)}')
         lines.append(f'    ELEZIONI_INTERVAL_MINUTES = {config.get("ELEZIONI_INTERVAL_MINUTES", 60)}')
 
-        with open(file_path, 'w') as f:
+        with open(file_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(lines) + '\n')
 
 

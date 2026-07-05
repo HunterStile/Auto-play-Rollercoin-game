@@ -23,12 +23,12 @@ class BaseGame(ABC):
         difficulty_max: int   - maximum difficulty level
     """
 
-    # ── Subclass must set these ──────────────────────────────────────────
+    # -- Subclass must set these ------------------------------------------
     game_id: str = ""
     display_name: str = ""
     description: str = ""
 
-    # ── Optional settings ────────────────────────────────────────────────
+    # -- Optional settings ------------------------------------------------
     has_difficulty: bool = False
     difficulty_min: int = 1
     difficulty_max: int = 1
@@ -43,7 +43,7 @@ class BaseGame(ABC):
         """
         self.config = config or {}
 
-    # ── Properties from config ───────────────────────────────────────────
+    # -- Properties from config -------------------------------------------
 
     @property
     def position(self) -> Optional[Tuple[int, int]]:
@@ -65,7 +65,7 @@ class BaseGame(ABC):
         """Difficulty level (if game supports it)."""
         return self.config.get('difficulty', 1)
 
-    # ── Abstract methods ─────────────────────────────────────────────────
+    # -- Abstract methods -------------------------------------------------
 
     @abstractmethod
     def play(self) -> bool:
@@ -77,7 +77,7 @@ class BaseGame(ABC):
         """
         ...
 
-    # ── Optional hooks ───────────────────────────────────────────────────
+    # -- Optional hooks ---------------------------------------------------
 
     def pre_game(self) -> None:
         """Called before play(). Override for setup (e.g. clicking start)."""
@@ -87,7 +87,7 @@ class BaseGame(ABC):
         """Called after play(). Override for cleanup (e.g. clicking gain power)."""
         pass
 
-    # ── Config key mapping (override in subclasses for legacy key names) ─
+    # -- Config key mapping (override in subclasses for legacy key names) -
     # Maps internal config names to the actual key names in Routine_config.py
     # Example: {'position': 'COINCLICK_POSITION', 'start_position': 'COINCLICK_START'}
     config_keys: Dict[str, str] = {}

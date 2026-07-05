@@ -59,7 +59,7 @@ class HamsterClimberBot(BaseGame):
                             running = False
                             break
 
-                        # Green bar detected → jump
+                        # Green bar detected -> jump
                         if self._is_color_match(self.target_color, (r, g, b), self.tolerance):
                             pyautogui.press('space')
                             found = True

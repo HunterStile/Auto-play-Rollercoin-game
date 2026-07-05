@@ -89,7 +89,7 @@ class GameOrchestrator:
 
         game_cls = GameRegistry.get(game_id)
         if not game_cls:
-            print(f"⚠️ Game '{game_id}' not found in registry!")
+            print(f"!! Game '{game_id}' not found in registry!")
             return False
 
         config = self._get_game_config(game_id)
@@ -98,11 +98,11 @@ class GameOrchestrator:
         # Step 1: Click game icon and wait for it to load
         position = config.get('position')
         if not position:
-            print(f"⚠️ No position configured for {game_id}")
+            print(f"!! No position configured for {game_id}")
             return False
 
         if not wait_game_ready(position):
-            print(f"❌ Game {game_id} failed to load")
+            print(f"X Game {game_id} failed to load")
             return False
 
         # Step 2: Click start button
@@ -173,7 +173,7 @@ class GameOrchestrator:
         # Validate game order
         valid_order = [g for g in self.game_order if GameRegistry.get(g)]
         if not valid_order:
-            print("⚠️ No valid games configured!")
+            print("!! No valid games configured!")
             return
 
         print(f"Running games: {valid_order}")
@@ -207,7 +207,7 @@ class GameOrchestrator:
             self.run_games()
 
 
-# ── Entry point ────────────────────────────────────────────────────────────
+# -- Entry point ------------------------------------------------------------
 
 if __name__ == "__main__":
     from Routine_config import GameRoutineConfig
