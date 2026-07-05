@@ -38,7 +38,6 @@ class TokenBlasterBot(BaseGame):
 
     def __init__(self, config=None):
         super().__init__(config)
-        self.move_speed = 0.06
 
     def _color_match(self, target, actual, tolerance=COLOR_TOLERANCE):
         return all(abs(t - a) <= tolerance for t, a in zip(target, actual))
@@ -120,35 +119,36 @@ class TokenBlasterBot(BaseGame):
                     ex, ey, etype = enemies[0]
                     x_dist = ex - ship_x
 
-                    if abs(x_dist) > 50:
-                        # Move towards enemy
+                    if abs(x_dist) > 30:
+                        # Small nudge towards enemy
+                        hold_time = min(0.04, abs(x_dist) * 0.001)
                         if x_dist < 0:
                             pyautogui.keyDown('left')
-                            time.sleep(self.move_speed)
+                            time.sleep(hold_time)
                             pyautogui.keyUp('left')
-                            ship_x = max(50, ship_x - 15)
+                            ship_x = max(50, ship_x - 5)
                         else:
                             pyautogui.keyDown('right')
-                            time.sleep(self.move_speed)
+                            time.sleep(hold_time)
                             pyautogui.keyUp('right')
-                            ship_x = min(screen_w - 50, ship_x + 15)
-                    # If aligned, space is already held = shooting continuously
+                            ship_x = min(screen_w - 50, ship_x + 5)
+                    # If aligned within 30px, space is held = shooting
                 else:
-                    # Dodge
-                    if time.time() - dodge_timer > 1.0:
+                    # Gentle sweep, not aggressive dodge
+                    if time.time() - dodge_timer > 2.0:
                         dodge_dir *= -1
                         dodge_timer = time.time()
 
                     if dodge_dir > 0:
                         pyautogui.keyDown('right')
-                        time.sleep(0.3)
+                        time.sleep(0.1)
                         pyautogui.keyUp('right')
-                        ship_x = min(screen_w - 50, ship_x + 60)
+                        ship_x = min(screen_w - 50, ship_x + 15)
                     else:
                         pyautogui.keyDown('left')
-                        time.sleep(0.3)
+                        time.sleep(0.1)
                         pyautogui.keyUp('left')
-                        ship_x = max(50, ship_x - 60)
+                        ship_x = max(50, ship_x - 15)
 
                 time.sleep(0.05)
 
