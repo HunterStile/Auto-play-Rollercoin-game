@@ -1,9 +1,9 @@
 """
 Token Blaster Game Bot.
 
-Space Invaders-style shooter controlled with ARROW KEYS:
-- LEFT/RIGHT = move ship
-- UP = shoot
+Space Invaders-style shooter:
+- LEFT/RIGHT arrow keys = move ship
+- SPACE = shoot (confirmed: Token Blaster uses spacebar, not up arrow)
 Press 'q' at any time to stop the bot.
 """
 
@@ -102,7 +102,7 @@ class TokenBlasterBot(BaseGame):
     def play(self) -> bool:
         """Play one round of Token Blaster using arrow keys."""
         print("START Token Blaster")
-        print("  Controls: LEFT/RIGHT = move, UP = shoot, Q = quit")
+        print("  Controls: LEFT/RIGHT = move, SPACE = shoot, Q = quit")
 
         screen_w = pyautogui.size()[0]
         ship_x = screen_w // 2  # assume ship starts at center
@@ -130,9 +130,9 @@ class TokenBlasterBot(BaseGame):
                     x_dist = ex - ship_x
 
                     if abs(x_dist) < 80:
-                        # Aligned! Shoot
+                        # Aligned! Shoot with SPACE (Token Blaster uses spacebar, not up arrow)
                         if time.time() - last_shot > self.shoot_cooldown:
-                            pyautogui.press('up')
+                            pyautogui.press('space')
                             last_shot = time.time()
                             print(f"  Shot at {etype} enemy ({ex}, {ey})")
                             dodge_dir *= -1  # dodge after shooting
