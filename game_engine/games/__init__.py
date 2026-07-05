@@ -11,3 +11,6 @@ from game_engine.games import coinflip
 from game_engine.games import coin2048
 from game_engine.games import hamsterclimber
 from game_engine.games import coinmatch
+from game_engine.games import tokenblaster
+from game_engine.games import coinfisher
+from game_engine.games import flappyrocket
