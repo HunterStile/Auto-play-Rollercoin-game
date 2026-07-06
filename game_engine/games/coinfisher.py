@@ -141,6 +141,18 @@ class CoinFisherBot(BaseGame):
         avg_y = sum(c[1] for c in cluster) / len(cluster)
         return (int(avg_x), int(avg_y))
 
+    @staticmethod
+    def _shot_point(cluster: List[Tuple[int, int]]) -> Tuple[int, int]:
+        """
+        Calculate the best point to click to maximize shot distance.
+        Uses the centroid X but shoots ABOVE the cluster (minimum Y)
+        so the harpoon has maximum travel length.
+        """
+        avg_x = int(sum(c[0] for c in cluster) / len(cluster))
+        min_y = min(c[1] for c in cluster)
+        # Shoot 30px above the highest coin for maximum arc
+        return (avg_x, min_y - 30)
+
     # ── Best shot selection ───────────────────────────────────────────
 
     def _find_best_shot(self) -> Optional[Tuple[int, int]]:
@@ -149,7 +161,7 @@ class CoinFisherBot(BaseGame):
         1. Scan all coins
         2. Group into clusters
         3. Pick the biggest cluster
-        4. Return its centroid
+        4. Return shot point above the cluster (max distance)
         """
         coins = self._scan_all_coins()
 
@@ -167,14 +179,15 @@ class CoinFisherBot(BaseGame):
 
         # Pick the biggest cluster
         best_cluster = max(clusters, key=len)
-        centroid = self._cluster_centroid(best_cluster)
+        # Use the shot point (above cluster) instead of centroid for max distance
+        shot = self._shot_point(best_cluster)
 
         # Show cluster stats
         sizes = sorted([len(c) for c in clusters], reverse=True)
         print(f"  Cluster sizes: {sizes[:5]}{'...' if len(sizes) > 5 else ''}")
-        print(f"  → Shooting biggest cluster ({len(best_cluster)} coins) at {centroid}")
+        print(f"  → Shooting biggest cluster ({len(best_cluster)} coins) at {shot}")
 
-        return centroid
+        return shot
 
     # ── End screen detection ──────────────────────────────────────────
 
