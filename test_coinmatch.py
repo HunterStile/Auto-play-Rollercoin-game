@@ -1,236 +1,228 @@
 """
-Test diagnostico per CoinMatch.
+Test diagnostico v2 per CoinMatch — campionamento completo delle celle.
 
-1. Cattura lo screen dell'area di gioco
-2. Scansiona la griglia 8x8
-3. Mostra i colori trovati e la griglia rilevata
-4. Aiuta a calibrare posizione griglia e colori monete
+Invece di leggere un pixel al centro, campiona TUTTA la cella,
+filtra lo sfondo, e prende il colore dominante della moneta.
 """
 
-import pyautogui
 import numpy as np
 import time
 import sys
-from PIL import Image
 from collections import Counter
 
-# ── Configurazioni da testare ──────────────────────────────────────
-GRID_X = 600       # X dell'angolo in alto a sinistra della griglia
-GRID_Y = 250       # Y dell'angolo in alto a sinistra della griglia
-CELL_SIZE = 50     # Dimensione cella in pixel
+# ── Configurazioni ─────────────────────────────────────────────────
+GRID_X = 600
+GRID_Y = 250
+CELL_SIZE = 50
 GRID_SIZE = 8
-COLOR_TOLERANCE = 25
+SAMPLE_MARGIN = 8  # pixel da ignorare ai bordi della cella (evita griglia)
 
-# Colori hardcoded (R, G, B) da provare
-# ETH = blu/viola, BLUE = azzurro, YELLOW = giallo, ORANGE = arancione
-COIN_COLORS_RGB = {
-    'ETH':    (66, 60, 207),
-    'BLUE':   (0, 120, 184),
-    'YELLOW': (200, 180, 64),
-    'ORANGE': (231, 120, 32),
-    'GREEN':  (50, 180, 80),    # possibile colore extra
-    'RED':    (220, 50, 50),     # possibile colore extra
-}
+# Colori di sfondo da ignorare (dark blue grid, white empty)
+BACKGROUND_COLORS = [
+    (0, 20, 60),     # dark blue grid
+    (15, 20, 90),    # dark navy
+    (250, 250, 255), # white empty
+    (0, 5, 10),      # near-black
+]
 
 
-def get_pixel_color(x, y):
-    """Legge il colore esatto di un pixel."""
-    try:
-        r, g, b = pyautogui.pixel(x, y)
-        return (r, g, b)
-    except Exception as e:
-        return None
+def is_background(r, g, b, tolerance=30):
+    """Check if a pixel is background (grid line, empty cell)."""
+    brightness = r + g + b
+    if brightness < 50:  # near-black
+        return True
+    if brightness > 700:  # near-white (empty cell)
+        return True
+    for br, bg, bb in BACKGROUND_COLORS:
+        if abs(r - br) + abs(g - bg) + abs(b - bb) <= tolerance:
+            return True
+    return False
 
 
-def get_avg_color(x, y, radius=5):
-    """Media del colore in un'area attorno al punto."""
-    try:
-        region = (x - radius, y - radius, x + radius + 1, y + radius + 1)
-        pic = pyautogui.screenshot(region=region)
-        arr = np.array(pic)
-        avg = tuple(np.mean(arr, axis=(0, 1)).astype(int))
-        return avg
-    except Exception:
-        return None
+def color_distance(c1, c2):
+    return abs(c1[0] - c2[0]) + abs(c1[1] - c2[1]) + abs(c1[2] - c2[2])
 
 
-def guess_coin_type(rgb, tolerance=COLOR_TOLERANCE):
-    """Indovina il tipo di moneta dal colore RGB."""
-    r, g, b = rgb
-    best = None
-    best_dist = float('inf')
-    for name, (tr, tg, tb) in COIN_COLORS_RGB.items():
-        dist = abs(r - tr) + abs(g - tg) + abs(b - tb)
-        if dist < best_dist:
-            best_dist = dist
-            best = name
-    if best_dist <= tolerance * 3:
-        return best, best_dist
-    return None, best_dist
-
-
-def scan_grid(grid_x, grid_y, cell_size, grid_size=8):
-    """Scansiona la griglia e mostra il tipo di ogni cella."""
-    print(f"\n{'='*70}")
-    print(f"SCANSIONE GRIGLIA @ ({grid_x}, {grid_y}) cell={cell_size}px")
-    print(f"{'='*70}")
-    print(f"\n{'Colori per cella (centro esatto):':>10}")
-    print(f"{'':>10}", end="")
-    for col in range(grid_size):
-        print(f"  Col{col:2d}  ", end="")
-    print()
-
-    grid = [[None] * grid_size for _ in range(grid_size)]
-    all_colors = []
-
-    for row in range(grid_size):
-        print(f"Riga {row:2d}:", end="")
-        for col in range(grid_size):
-            x = grid_x + col * cell_size + cell_size // 2
-            y = grid_y + row * cell_size + cell_size // 2
-            color = get_pixel_color(x, y)
-            all_colors.append((row, col, color))
-            coin, dist = guess_coin_type(color) if color else (None, float('inf'))
-            grid[row][col] = coin
-
-            if coin:
-                print(f" {coin:>6s}  ", end="")
-            else:
-                r, g, b = color if color else (0, 0, 0)
-                print(f" ({r:3d},{g:3d},{b:3d})", end="")
-        print()
-
-    return grid, all_colors
-
-
-def find_unique_colors(all_colors, tolerance=30):
-    """Raggruppa i colori simili per trovare i colori unici delle monete."""
-    clusters = []
-
-    for row, col, color in all_colors:
-        if color is None:
-            continue
-        r, g, b = color
+def cluster_colors(pixels, tolerance=40):
+    """Group similar colors, return sorted by frequency."""
+    if not pixels:
+        return []
+    clusters = []  # [(representative_color, count)]
+    for px in pixels:
         found = False
-        for cluster_colors, positions in clusters:
-            cr, cg, cb = cluster_colors[0]  # rappresentante
-            if abs(r - cr) + abs(g - cg) + abs(b - cb) <= tolerance:
-                cluster_colors.append(color)
-                positions.append((row, col))
+        for i, (rep, count) in enumerate(clusters):
+            if color_distance(px, rep) <= tolerance:
+                clusters[i] = (tuple((np.array(rep) * count + np.array(px)) // (count + 1)), count + 1)
                 found = True
                 break
         if not found:
-            clusters.append(([color], [(row, col)]))
+            clusters.append((px, 1))
+    clusters.sort(key=lambda x: -x[1])
+    return clusters
 
-    print(f"\n{'='*70}")
-    print("COLORI UNICI TROVATI (cluster con tolleranza {tolerance})")
-    print(f"{'='*70}")
-    for i, (colors, positions) in enumerate(clusters):
-        avg_r = int(np.mean([c[0] for c in colors]))
-        avg_g = int(np.mean([c[1] for c in colors]))
-        avg_b = int(np.mean([c[2] for c in colors]))
-        print(f"\n  Cluster {i+1}: ({avg_r}, {avg_g}, {avg_b})  [{len(colors)} celle]")
-        pos_str = ", ".join([f"({r},{c})" for r, c in positions[:8]])
-        if len(positions) > 8:
-            pos_str += f" ... +{len(positions)-8}"
+
+def get_cell_dominant_color(screenshot, col, row):
+    """
+    Extract all non-background pixels from a cell and return the dominant color.
+    screenshot: numpy array (H, W, 3) of the game area.
+    Returns (r, g, b) or None.
+    """
+    h, w = screenshot.shape[:2]
+    x1 = col * CELL_SIZE + SAMPLE_MARGIN
+    y1 = row * CELL_SIZE + SAMPLE_MARGIN
+    x2 = min((col + 1) * CELL_SIZE - SAMPLE_MARGIN, w)
+    y2 = min((row + 1) * CELL_SIZE - SAMPLE_MARGIN, h)
+
+    if x2 <= x1 or y2 <= y1:
+        return None
+
+    cell = screenshot[y1:y2, x1:x2]
+    pixels = []
+    for py in range(cell.shape[0]):
+        for px in range(cell.shape[1]):
+            r, g, b = cell[py, px]
+            if not is_background(int(r), int(g), int(b)):
+                pixels.append((int(r), int(g), int(b)))
+
+    if not pixels:
+        return None
+
+    # Get the most common non-background color
+    clusters = cluster_colors(pixels)
+    return clusters[0][0] if clusters else None
+
+
+def scan_grid_full():
+    """Scan the grid using full-cell sampling."""
+    import pyautogui
+
+    print(f"Scansione griglia @ ({GRID_X}, {GRID_Y}) cell={CELL_SIZE}px")
+    print(f"Campionamento: margine={SAMPLE_MARGIN}px, ogni cella analizzata completamente")
+    print()
+
+    # Screenshot di tutta l'area della griglia
+    region = (GRID_X, GRID_Y, CELL_SIZE * GRID_SIZE, CELL_SIZE * GRID_SIZE)
+    print(f"Screenshot area: {region}")
+
+    try:
+        pic = pyautogui.screenshot(region=region)
+    except Exception as e:
+        print(f" ERRORE screenshot: {e}")
+        return None, None
+
+    arr = np.array(pic)
+    print(f"Dimensione screenshot: {arr.shape}")
+
+    grid_colors = [[None] * GRID_SIZE for _ in range(GRID_SIZE)]
+    all_dominant = []
+
+    print(f"\n{'Griglia rilevata (colore dominante per cella):':>15}")
+    print(f"{'':>12}", end="")
+    for col in range(GRID_SIZE):
+        print(f"  Col{col}  ", end="")
+    print()
+
+    for row in range(GRID_SIZE):
+        print(f"Riga {row:2d}:", end=" ")
+        for col in range(GRID_SIZE):
+            color = get_cell_dominant_color(arr, col, row)
+            grid_colors[row][col] = color
+            if color:
+                r, g, b = color
+                print(f"({r:3d},{g:3d},{b:3d})", end=" ")
+                all_dominant.append((row, col, color))
+            else:
+                print(f"  [vuoto]  ", end=" ")
+        print()
+
+    return grid_colors, all_dominant
+
+
+def find_unique_coin_colors(all_dominant):
+    """Cluster all dominant colors found to identify unique coin types."""
+    if not all_dominant:
+        return []
+
+    pixels = [color for _, _, color in all_dominant]
+    clusters = cluster_colors(pixels, tolerance=50)
+
+    print(f"\n{'='*60}")
+    print("COLORI MONETE RILEVATI (cluster dei colori dominanti)")
+    print(f"{'='*60}")
+
+    for i, (color, count) in enumerate(clusters):
+        r, g, b = color
+        # Trova le posizioni di questo cluster
+        positions = []
+        for row, col, c in all_dominant:
+            if color_distance(c, color) <= 50:
+                positions.append((row, col))
+
+        # Suggerisci nome
+        if r > 200 and g > 150 and b < 120:
+            name = "YELLOW/GOLD"
+        elif r > 200 and g > 100 and g < 160:
+            name = "ORANGE"
+        elif b > 150 and r < 120:
+            name = "BLUE"
+        elif r < 80 and g < 80 and b > 100:
+            name = "PURPLE/ETH"
+        elif g > 150 and r < 100 and b < 100:
+            name = "GREEN"
+        else:
+            name = f"COIN_{i+1}"
+
+        print(f"\n  {name}: RGB({r}, {g}, {b})  [{count} celle]")
+        pos_str = ", ".join([f"({r},{c})" for r, c in positions[:10]])
+        if len(positions) > 10:
+            pos_str += f" ... +{len(positions)-10}"
         print(f"    Posizioni: {pos_str}")
 
     return clusters
 
 
-def check_grid_alignment(grid_x, grid_y, cell_size, grid_size=8):
-    """Verifica se la griglia è allineata correttamente controllando i bordi."""
-    print(f"\n{'='*70}")
-    print("VERIFICA ALLINEAMENTO GRIGLIA")
-    print(f"{'='*70}")
-
-    # Controlla i pixel tra le celle (dovrebbero essere sfondo scuro)
-    issues = 0
-    for row in range(grid_size):
-        for col in range(grid_size - 1):
-            # Punto tra cella col e col+1
-            x = grid_x + (col + 1) * cell_size
-            y = grid_y + row * cell_size + cell_size // 2
-            color = get_pixel_color(x, y)
-            if color:
-                brightness = sum(color)
-                if brightness > 150:  # troppo chiaro = probabilmente dentro una cella
-                    issues += 1
-
-    if issues > 5:
-        print(f"  ⚠️  {issues} punti tra le celle sono chiari - la griglia potrebbe essere disallineata!")
-        print(f"  Suggerimento: regola GRID_X, GRID_Y o CELL_SIZE")
-    else:
-        print(f"  ✅ Solo {issues} punti sospetti - griglia probabilmente allineata")
-
-
 def main():
-    print("=" * 70)
-    print("  TEST DIAGNOSTICO CoinMatch")
-    print("=" * 70)
+    print("=" * 60)
+    print("  TEST DIAGNOSTICO CoinMatch v2 - Full Cell Sampling")
+    print("=" * 60)
     print()
-    print("Assicurati che il gioco CoinMatch sia visibile sullo schermo!")
-    print("Hai 3 secondi per prepararti...")
+    print("Assicurati che CoinMatch sia visibile. Hai 3 secondi...")
     time.sleep(3)
 
-    # 1. Scansiona la griglia
-    grid, all_colors = scan_grid(GRID_X, GRID_Y, CELL_SIZE, GRID_SIZE)
+    grid_colors, all_dominant = scan_grid_full()
 
-    # 2. Trova colori unici
-    clusters = find_unique_colors(all_colors)
+    if all_dominant is None:
+        print("\n❌ Impossibile fare lo screenshot. Il gioco è visibile?")
+        return
 
-    # 3. Verifica allineamento
-    check_grid_alignment(GRID_X, GRID_Y, CELL_SIZE, GRID_SIZE)
+    if all_dominant:
+        clusters = find_unique_coin_colors(all_dominant)
+        recognized = len(all_dominant)
+        total = GRID_SIZE * GRID_SIZE
+        print(f"\n✅ Celle riconosciute: {recognized}/{total} ({recognized*100/total:.0f}%)")
+        print(f"   Colori unici trovati: {len(clusters)}")
+    else:
+        print("\n❌ Nessuna cella riconosciuta!")
+        print("   Controlla: GRID_X={}, GRID_Y={}, CELL_SIZE={}".format(GRID_X, GRID_Y, CELL_SIZE))
 
-    # 4. Suggerimenti
-    print(f"\n{'='*70}")
-    print("SUGGERIMENTI")
-    print(f"{'='*70}")
-    print()
+    print(f"\n{'='*60}")
+    print("SUGGERIMENTI PER LA CONFIGURAZIONE")
+    print(f"{'='*60}")
 
-    non_null = sum(1 for row in grid for cell in row if cell is not None)
-    total = GRID_SIZE * GRID_SIZE
-    print(f"  Celle riconosciute: {non_null}/{total} ({non_null*100/total:.0f}%)")
-
-    if non_null < total * 0.5:
-        print("  ⚠️  Meno del 50% delle celle riconosciute!")
-        print("  Possibili cause:")
-        print("    1. GRID_X/GRID_Y sbagliati (la griglia è spostata)")
-        print("    2. CELL_SIZE sbagliato (le celle sono più grandi/piccole)")
-        print("    3. I colori hardcoded non corrispondono a quelli reali")
-        print()
-        print("  Per risolvere:")
-        print("    - Aggiungi GRID_X e GRID_Y come parametri: python test_coinmatch.py <X> <Y>")
-        print("    - Modifica COIN_COLORS_RGB nel file con i colori reali del gioco")
-
-    # Mostra colori per la calibrazione
-    print()
-    print("  Colori reali rilevati (da copiare in COIN_COLORS_RGB):")
-    for i, (colors, positions) in enumerate(clusters[:6]):
-        avg_r = int(np.mean([c[0] for c in colors]))
-        avg_g = int(np.mean([c[1] for c in colors]))
-        avg_b = int(np.mean([c[2] for c in colors]))
-        count = len(colors)
-        # Suggerisci un nome
-        if avg_r > 200 and avg_g > 150:
-            name = "YELLOW"
-        elif avg_r > 200 and avg_g < 100:
-            name = "ORANGE"
-        elif avg_b > 180:
-            name = "BLUE"
-        elif avg_r < 100 and avg_b > 150:
-            name = "ETH"
-        else:
-            name = f"COIN_{i+1}"
-        print(f"    '{name}': ({avg_r}, {avg_g}, {avg_b}),  # {count} celle")
+    empty_count = sum(1 for row in grid_colors for c in row if c is None) if grid_colors else 0
+    if empty_count > 30:
+        print(f"\n  ⚠️  {empty_count} celle VUOTE - griglia probabilmente disallineata")
+        print(f"  Prova: python3 test_coinmatch.py <X> <Y> <CELL_SIZE>")
+        print(f"  Esempio: python3 test_coinmatch.py 580 240 48")
 
 
 if __name__ == "__main__":
-    # Supporta parametri da CLI: python test_coinmatch.py <GRID_X> <GRID_Y> [CELL_SIZE]
     if len(sys.argv) >= 3:
         GRID_X = int(sys.argv[1])
         GRID_Y = int(sys.argv[2])
     if len(sys.argv) >= 4:
         CELL_SIZE = int(sys.argv[3])
+    if len(sys.argv) >= 5:
+        SAMPLE_MARGIN = int(sys.argv[4])
 
     main()
