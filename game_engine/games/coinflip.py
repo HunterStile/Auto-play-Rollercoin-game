@@ -65,17 +65,38 @@ class CoinFlipBot(BaseGame):
 
     @staticmethod
     def _get_card_color(x: int, y: int) -> tuple:
-        """Capture and return the dominant color at a card position."""
-        region = (x - 10, y - 10, x + 10, y + 10)
+        """
+        Capture the dominant NON-WHITE color at a card position.
+        Filters out white/light pixels so the card's actual color
+        isn't diluted by white background areas.
+        """
+        region = (x - 15, y - 15, x + 15, y + 15)
         screenshot = ImageGrab.grab(bbox=region)
         img_array = np.array(screenshot)
+
+        # Filter out white/near-white pixels (R+G+B > 650)
+        h, w, _ = img_array.shape
+        colored_pixels = []
+        for py in range(h):
+            for px in range(w):
+                r, g, b = img_array[py, px]
+                if int(r) + int(g) + int(b) < 650:  # not white
+                    colored_pixels.append((int(r), int(g), int(b)))
+
+        if colored_pixels:
+            avg_r = sum(p[0] for p in colored_pixels) // len(colored_pixels)
+            avg_g = sum(p[1] for p in colored_pixels) // len(colored_pixels)
+            avg_b = sum(p[2] for p in colored_pixels) // len(colored_pixels)
+            return (avg_r, avg_g, avg_b)
+
+        # Fallback: average everything
         return tuple(np.mean(img_array, axis=(0, 1)).astype(int))
 
     @staticmethod
     def _are_matching(color1: tuple, color2: tuple) -> bool:
         """Check if two colors represent matching cards."""
         diff = sum(abs(a - b) for a, b in zip(color1, color2))
-        return diff < 50
+        return diff < 100  # wider tolerance for card variations
 
     def _click_and_get_color(self, row: int, col: int) -> tuple:
         """Click a card and return its color."""
