@@ -62,6 +62,8 @@ class CoinFlipBot(BaseGame):
         self.found_pairs = set()
         self.card_memory = {}
         self.game_duration = 60  # seconds
+        # Shift click/sample point right to avoid white areas and catch more color
+        self.click_offset_x = config.get('click_offset_x', 15) if config else 15
 
     @staticmethod
     def _get_card_color(x: int, y: int) -> tuple:
@@ -99,11 +101,12 @@ class CoinFlipBot(BaseGame):
         return diff < 100  # wider tolerance for card variations
 
     def _click_and_get_color(self, row: int, col: int) -> tuple:
-        """Click a card and return its color."""
+        """Click a card and return its color. Offset X to sample more colored area."""
         x, y = self.cell_coords[row][col]
-        pyautogui.click(x, y)
+        sample_x = x + self.click_offset_x  # shift right for better color sampling
+        pyautogui.click(x, y)  # click original position
         sleep(0.5)
-        return self._get_card_color(x, y)
+        return self._get_card_color(sample_x, y)  # sample offset position
 
     def _get_available_moves(self) -> List[Tuple[int, int]]:
         """Return all cells not yet matched."""
