@@ -2,11 +2,13 @@ import json
 import os
 import secrets
 import subprocess
-import time
 
 ESTENSIONI_VIDEO = (".mp4", ".avi", ".mkv", ".mov", ".wmv")
 TAG_FILE = "video_tags.json"
 VIDEO_PLAYERS = ("vlc.exe", "wmplayer.exe", "potplayer.exe", "mpc-hc64.exe", "mpc-hc.exe")
+# Se True, durante lo skip chiude i player (piu lento ma piu pulito).
+# Se False, lo skip e' immediato e apre direttamente il prossimo video.
+CHIUDI_PLAYER_NELLO_SKIP = False
 
 
 def trova_video(cartella):
@@ -144,13 +146,12 @@ def gestisci_comando_riproduzione(cmd, video_corrente, tagged_nel_turno, tags_db
         if not tagged_nel_turno:
             print("Prima di skippare devi inserire almeno un tag per questo video.")
             return "continua", tagged_nel_turno
-        termina_processo_video()
-        time.sleep(1)
+        if CHIUDI_PLAYER_NELLO_SKIP:
+            termina_processo_video()
         return "prossimo_video", tagged_nel_turno
 
     if cmd == "x":
         termina_processo_video()
-        time.sleep(1)
         return "torna_menu", tagged_nel_turno
 
     print("Comando non valido. Usa t, s oppure x.")
@@ -263,7 +264,7 @@ def menu_principale(cartella_video):
 
 
 def main():
-    default_cartella = os.path.join(os.path.expanduser("~"), "Videos")
+    default_cartella = r"D:\temp"
     cartella_video = input(
         f"Cartella video (invio per default: {default_cartella}): "
     ).strip() or default_cartella
