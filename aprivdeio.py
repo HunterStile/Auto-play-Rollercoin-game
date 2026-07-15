@@ -189,6 +189,52 @@ def riproduzione_con_tag_obbligatorio(tutti_video, video_riprodotti, tags_db, ta
         termina_processo_video()
 
 
+def trova_video_non_taggati(tutti_video, tags_db):
+    non_taggati = []
+    for video in tutti_video:
+        if not tags_db.get(video):
+            non_taggati.append(video)
+    return non_taggati
+
+
+def riproduzione_discovery(tutti_video, tags_db, tags_path):
+    """Riproduce casualmente solo video senza tag finche non vengono classificati."""
+    print("\nModalita Discovery attiva. Solo video senza tag. Premi CTRL+C per tornare al menu.")
+
+    try:
+        while True:
+            candidati = trova_video_non_taggati(tutti_video, tags_db)
+            if not candidati:
+                print("Discovery completata: tutti i video hanno almeno un tag.")
+                termina_processo_video()
+                return
+
+            video_corrente = secrets.choice(candidati)
+            tagged_nel_turno = False
+
+            print(f"\nIn discovery: {os.path.basename(video_corrente)}")
+            print(f"Rimasti senza tag: {len(candidati)}")
+            print(f"Percorso: {video_corrente}")
+            print(
+                "Comandi: [t] aggiungi tag, [s] skip video (solo dopo almeno un tag), [x] chiudi player e torna al menu"
+            )
+            apri_video(video_corrente)
+
+            while True:
+                cmd = input("Comando: ").strip().lower()
+                azione, tagged_nel_turno = gestisci_comando_riproduzione(
+                    cmd, video_corrente, tagged_nel_turno, tags_db, tags_path
+                )
+                if azione == "prossimo_video":
+                    break
+                if azione == "torna_menu":
+                    return
+
+    except KeyboardInterrupt:
+        print("\nRitorno al menu principale.")
+        termina_processo_video()
+
+
 def cerca_video_per_tag(tutti_video, tags_db):
     ricerca_raw = input("Inserisci uno o piu tag (separati da virgola): ").strip()
     richiesti = parse_tag_input(ricerca_raw)
@@ -234,10 +280,11 @@ def menu_principale(cartella_video):
     while True:
         print("\n=== MENU VIDEO TAG ===")
         print("1) Riproduci video casuali (tag obbligatorio prima dello skip)")
-        print("2) Aggiungi/modifica tag a un video")
-        print("3) Cerca video per tag")
-        print("4) Mostra tag di un video")
-        print("5) Aggiorna scansione cartella video")
+        print("2) Discovery (solo video non ancora taggati)")
+        print("3) Aggiungi/modifica tag a un video")
+        print("4) Cerca video per tag")
+        print("5) Mostra tag di un video")
+        print("6) Aggiorna scansione cartella video")
         print("0) Esci")
 
         scelta = input("Scelta: ").strip()
@@ -245,14 +292,16 @@ def menu_principale(cartella_video):
         if scelta == "1":
             riproduzione_con_tag_obbligatorio(tutti_video, video_riprodotti, tags_db, tags_path)
         elif scelta == "2":
+            riproduzione_discovery(tutti_video, tags_db, tags_path)
+        elif scelta == "3":
             video = scegli_video(tutti_video)
             if video and aggiungi_tag_a_video(video, tags_db):
                 salva_tags(tags_path, tags_db)
-        elif scelta == "3":
-            cerca_video_per_tag(tutti_video, tags_db)
         elif scelta == "4":
-            mostra_tag_per_video(tutti_video, tags_db)
+            cerca_video_per_tag(tutti_video, tags_db)
         elif scelta == "5":
+            mostra_tag_per_video(tutti_video, tags_db)
+        elif scelta == "6":
             tutti_video = trova_video(cartella_video)
             print(f"Scansione aggiornata. Trovati {len(tutti_video)} video.")
         elif scelta == "0":
