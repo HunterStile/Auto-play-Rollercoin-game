@@ -235,7 +235,45 @@ def riproduzione_discovery(tutti_video, tags_db, tags_path):
         termina_processo_video()
 
 
-def cerca_video_per_tag(tutti_video, tags_db):
+def riproduci_lista_video(videos, tags_db, tags_path):
+    """Riproduce in sequenza una lista di video gia' filtrata (es. risultati di ricerca per tag)."""
+    print("\nRiproduzione risultati. Premi CTRL+C per tornare al menu.")
+
+    try:
+        for video_corrente in videos:
+            print(f"\nIn riproduzione: {os.path.basename(video_corrente)}")
+            print(f"Percorso: {video_corrente}")
+            print(
+                "Comandi: [t] aggiungi tag, [s] prossimo video, [x] chiudi player e torna al menu"
+            )
+            apri_video(video_corrente)
+
+            while True:
+                cmd = input("Comando: ").strip().lower()
+
+                if cmd == "t":
+                    if aggiungi_tag_a_video(video_corrente, tags_db):
+                        salva_tags(tags_path, tags_db)
+                    continue
+
+                if cmd == "s":
+                    break
+
+                if cmd == "x":
+                    termina_processo_video()
+                    return
+
+                print("Comando non valido. Usa t, s oppure x.")
+
+        print("\nFine risultati.")
+        termina_processo_video()
+
+    except KeyboardInterrupt:
+        print("\nRitorno al menu principale.")
+        termina_processo_video()
+
+
+def cerca_video_per_tag(tutti_video, tags_db, tags_path):
     ricerca_raw = input("Inserisci uno o piu tag (separati da virgola): ").strip()
     richiesti = parse_tag_input(ricerca_raw)
 
@@ -256,6 +294,35 @@ def cerca_video_per_tag(tutti_video, tags_db):
 
     mostra_video_con_indice(risultati)
 
+    print(
+        "\n[numero] apri singolo video  |  [p] riproduci in sequenza  |  [c] riproduci in ordine casuale  |  invio per annullare"
+    )
+    scelta = input("Scelta: ").strip().lower()
+
+    if not scelta:
+        return
+
+    if scelta == "p":
+        riproduci_lista_video(risultati, tags_db, tags_path)
+        return
+
+    if scelta == "c":
+        risultati_casuali = risultati.copy()
+        secrets.SystemRandom().shuffle(risultati_casuali)
+        riproduci_lista_video(risultati_casuali, tags_db, tags_path)
+        return
+
+    if not scelta.isdigit():
+        print("Scelta non valida.")
+        return
+
+    idx = int(scelta) - 1
+    if idx < 0 or idx >= len(risultati):
+        print("Indice fuori range.")
+        return
+
+    apri_video(risultati[idx])
+
 
 def mostra_tag_per_video(tutti_video, tags_db):
     video = scegli_video(tutti_video)
@@ -265,6 +332,65 @@ def mostra_tag_per_video(tutti_video, tags_db):
     tags = tags_db.get(video, [])
     print(f"\n{os.path.basename(video)}")
     print(f"Tag: {', '.join(tags) if tags else 'nessuno'}")
+
+
+def conta_statistiche_tag(tags_db):
+    """Conta l'utilizzo di ogni tag e restituisce statistiche."""
+    conteggio_tag = {}
+    
+    # Conta tutti i tag
+    for video, tags in tags_db.items():
+        for tag in tags:
+            conteggio_tag[tag] = conteggio_tag.get(tag, 0) + 1
+    
+    if not conteggio_tag:
+        return {}
+    
+    # Calcola percentuali
+    totale = sum(conteggio_tag.values())
+    statistiche = {}
+    
+    for tag, count in conteggio_tag.items():
+        percentuale = (count / totale * 100) if totale > 0 else 0
+        statistiche[tag] = {"count": count, "percentuale": percentuale}
+    
+    # Ordina per percentuale decrescente
+    return dict(sorted(statistiche.items(), key=lambda x: x[1]["percentuale"], reverse=True))
+
+
+def mostra_statistiche_tag(tags_db):
+    """Visualizza statistiche dei tag con grafico ASCII."""
+    statistiche = conta_statistiche_tag(tags_db)
+    
+    if not statistiche:
+        print("\nNessun tag presente nel database.")
+        return
+    
+    print("\n=== STATISTICHE TAG ===")
+    print()
+    
+    # Lunghezza della barra del grafico
+    lunghezza_barra = 30
+    
+    # Mostra i tag con grafico
+    for tag, dati in statistiche.items():
+        percentuale = dati["percentuale"]
+        count = dati["count"]
+        
+        # Calcola lunghezza della barra piena
+        barra_piena = int(percentuale / 100 * lunghezza_barra)
+        barra_vuota = lunghezza_barra - barra_piena
+        
+        # Crea il grafico
+        grafico = "█" * barra_piena + "░" * barra_vuota
+        
+        # Stampa con formattazione
+        print(f"{tag:20} | {grafico} | {percentuale:5.1f}% ({count})")
+    
+    # Stampa il totale
+    totale = sum(d["count"] for d in statistiche.values())
+    print(f"\nTotale tag utilizzati: {totale}")
+    print(f"Tag unici: {len(statistiche)}")
 
 
 def menu_principale(cartella_video):
@@ -284,7 +410,8 @@ def menu_principale(cartella_video):
         print("3) Aggiungi/modifica tag a un video")
         print("4) Cerca video per tag")
         print("5) Mostra tag di un video")
-        print("6) Aggiorna scansione cartella video")
+        print("6) Statistiche tag (percentuali e grafico)")
+        print("7) Aggiorna scansione cartella video")
         print("0) Esci")
 
         scelta = input("Scelta: ").strip()
@@ -298,10 +425,12 @@ def menu_principale(cartella_video):
             if video and aggiungi_tag_a_video(video, tags_db):
                 salva_tags(tags_path, tags_db)
         elif scelta == "4":
-            cerca_video_per_tag(tutti_video, tags_db)
+            cerca_video_per_tag(tutti_video, tags_db, tags_path)
         elif scelta == "5":
             mostra_tag_per_video(tutti_video, tags_db)
         elif scelta == "6":
+            mostra_statistiche_tag(tags_db)
+        elif scelta == "7":
             tutti_video = trova_video(cartella_video)
             print(f"Scansione aggiornata. Trovati {len(tutti_video)} video.")
         elif scelta == "0":
