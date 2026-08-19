@@ -179,10 +179,13 @@ class GameOrchestrator:
         print(f"Running games: {valid_order}")
 
         while True:
+            played_any = False
             for game_id in valid_order:
-                self._run_single_game(game_id)
-                break  # break inner loop after one successful game
-            else:
+                if self._run_single_game(game_id):
+                    played_any = True
+                else:
+                    print(f"! {game_id} not available, skipping to next game...")
+            if not played_any:
                 print("No games available. Waiting and retrying...")
                 sleep(30)
 
