@@ -451,7 +451,7 @@ class GameConfigGUI:
 
         ttk.Checkbutton(
             other_frame,
-            text="Banner Event Enabled",
+            text="Scroll Event Enabled",
             variable=self.banner_event
         ).pack(anchor=tk.W, pady=4)
 
