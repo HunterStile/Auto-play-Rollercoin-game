@@ -133,6 +133,7 @@ class GameConfigGUI:
         self._init_variables()
 
         # Create GUI sections
+        self._create_scroll_settings()
         self._create_position_settings()
         self._create_game_order_settings()
         self._create_other_settings()
@@ -295,19 +296,25 @@ class GameConfigGUI:
         self.order_vars = {}     # game_id -> StringVar (order)
 
         default_positions = {
-            'coinclick': (1300, 244),
-            'coinflip': (600, 817),
-            'coin2048': (1300, 673),
-            'hamsterclimber': (600, 970),
-            'coinmatch': (960, 400),
+            'coinclick': (842, 289),
+            'coinflip': (838, 1004),      # MEMORY
+            'coin2048': (1185, 857),      # GIOCO2048
+            'hamsterclimber': (854, 710),
+            'coinfisher': (483, 696),
+            'coinmatch': (475, 554),
+            'flappyrocket': (1174, 700),
+            'tokenblaster': (1180, 506),
         }
 
         default_starts = {
-            'coinclick': (992, 438),
-            'coinflip': (992, 500),
-            'coin2048': (992, 504),
-            'hamsterclimber': (992, 492),
+            'coinclick': (907, 427),
+            'coinflip': (992, 500),       # MEMORY
+            'coin2048': (915, 497),       # GIOCO2048
+            'hamsterclimber': (859, 481),
+            'coinfisher': (904, 480),
             'coinmatch': (990, 450),
+            'flappyrocket': (990, 450),
+            'tokenblaster': (990, 450),
         }
 
         for i, game in enumerate(self.games):
@@ -329,7 +336,7 @@ class GameConfigGUI:
         # Other settings
         self.gain_power_x = tk.StringVar(value="967")
         self.gain_power_y = tk.StringVar(value="645")
-        self.scroll_down = tk.StringVar(value="-390")
+        self.scroll_down = tk.StringVar(value="-395")
         self.banner_event = tk.BooleanVar(value=True)
 
         # Difficulty settings (for games that support it)
@@ -339,6 +346,29 @@ class GameConfigGUI:
                 self.difficulty_vars[game.game_id] = tk.StringVar(value="2")
 
     # -- UI Creation ------------------------------------------------------
+
+    def _create_scroll_settings(self):
+        """Scroll Down Value is the most important setting: it is used both by
+        the position Finder (scrolls before capturing the cursor) and by the
+        bot itself (to realign the games grid after each refresh)."""
+        scroll_frame = ttk.LabelFrame(self.scrollable_frame, text="⬇ Scroll Down Value", padding=10)
+        scroll_frame.pack(fill=tk.X, padx=5, pady=(0, 8))
+
+        ttk.Label(
+            scroll_frame,
+            text="Used by the Find button AND by the bot after every round to\n"
+                 "align the game grid. A fixed scroll is needed to identify the tiles.",
+            style="Muted.TLabel",
+            justify=tk.LEFT,
+        ).pack(anchor=tk.W, pady=(0, 4))
+        ttk.Label(scroll_frame, text="Scroll Down Value:").pack(anchor=tk.W)
+        ttk.Entry(scroll_frame, textvariable=self.scroll_down).pack(fill=tk.X, pady=4)
+
+        ttk.Checkbutton(
+            scroll_frame,
+            text="Scroll Event Enabled",
+            variable=self.banner_event
+        ).pack(anchor=tk.W, pady=4)
 
     def _create_position_settings(self):
         """Create one row with game and start-button positions per game."""
@@ -389,40 +419,6 @@ class GameConfigGUI:
                 command=lambda xv=start_x, yv=start_y: self.find_position(xv, yv)
             ).grid(row=row, column=6, padx=3, pady=2)
 
-        # Gain Power position
-        gain_frame = ttk.LabelFrame(self.scrollable_frame, text="⚡ Gain Power Position", padding=10)
-        gain_frame.pack(fill=tk.X, padx=5, pady=(0, 8))
-
-        ttk.Label(gain_frame, text="Gain Power:").grid(row=0, column=0, sticky=tk.W)
-        ttk.Entry(gain_frame, textvariable=self.gain_power_x, width=8).grid(row=0, column=1, padx=5)
-        ttk.Entry(gain_frame, textvariable=self.gain_power_y, width=8).grid(row=0, column=2)
-        ttk.Button(
-            gain_frame, text="Find", style=SECONDARY_BTN,
-            command=lambda: self.find_position(self.gain_power_x, self.gain_power_y)
-        ).grid(row=0, column=3, padx=(8, 0))
-
-        # Difficulty settings for games that support it
-        diff_games = [g for g in self.games if g.has_difficulty]
-        if diff_games:
-            diff_frame = ttk.LabelFrame(self.scrollable_frame, text="🎚 Difficulty Settings", padding=10)
-            diff_frame.pack(fill=tk.X, padx=5, pady=(0, 8))
-
-            row = 0
-            for game in diff_games:
-                gid = game.game_id
-                ttk.Label(diff_frame, text=f"{game.display_name} Level:").grid(
-                    row=row, column=0, sticky=tk.W, pady=2
-                )
-                ttk.Spinbox(
-                    diff_frame,
-                    from_=game.difficulty_min,
-                    to=game.difficulty_max,
-                    textvariable=self.difficulty_vars[gid],
-                    width=5,
-                    state="readonly"
-                ).grid(row=row, column=1, padx=5, pady=2)
-                row += 1
-
     def _create_game_order_settings(self):
         """Dynamically create game order selection."""
         order_frame = ttk.LabelFrame(self.scrollable_frame, text="🔁 Game Order", padding=10)
@@ -455,18 +451,38 @@ class GameConfigGUI:
             ).pack(side=tk.RIGHT)
 
     def _create_other_settings(self):
-        """General settings."""
+        """Gain Power and difficulty settings."""
         other_frame = ttk.LabelFrame(self.scrollable_frame, text="🛠 Other Settings", padding=10)
         other_frame.pack(fill=tk.X, padx=5, pady=(0, 8))
 
-        ttk.Label(other_frame, text="Scroll Down Value:").pack(anchor=tk.W)
-        ttk.Entry(other_frame, textvariable=self.scroll_down).pack(fill=tk.X, pady=4)
+        # Gain Power position
+        ttk.Label(other_frame, text="Gain Power Position:").pack(anchor=tk.W)
+        gp_frame = ttk.Frame(other_frame)
+        gp_frame.pack(fill=tk.X, pady=4)
+        ttk.Entry(gp_frame, textvariable=self.gain_power_x, width=8).pack(side=tk.LEFT, padx=5)
+        ttk.Entry(gp_frame, textvariable=self.gain_power_y, width=8).pack(side=tk.LEFT)
+        ttk.Button(
+            gp_frame, text="Find", style=SECONDARY_BTN,
+            command=lambda: self.find_position(self.gain_power_x, self.gain_power_y)
+        ).pack(side=tk.LEFT, padx=(8, 5))
 
-        ttk.Checkbutton(
-            other_frame,
-            text="Scroll Event Enabled",
-            variable=self.banner_event
-        ).pack(anchor=tk.W, pady=4)
+        # Difficulty settings for games that support it
+        diff_games = [g for g in self.games if g.has_difficulty]
+        if diff_games:
+            ttk.Label(other_frame, text="Difficulty:", style="Muted.TLabel").pack(anchor=tk.W, pady=(10, 0))
+            for game in diff_games:
+                gid = game.game_id
+                df = ttk.Frame(other_frame)
+                df.pack(fill=tk.X, pady=2)
+                ttk.Label(df, text=f"{game.display_name} Level:").pack(side=tk.LEFT)
+                ttk.Spinbox(
+                    df,
+                    from_=game.difficulty_min,
+                    to=game.difficulty_max,
+                    textvariable=self.difficulty_vars[gid],
+                    width=5,
+                    state="readonly"
+                ).pack(side=tk.RIGHT, padx=5)
 
     def _create_buttons(self):
         """Action buttons."""

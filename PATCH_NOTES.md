@@ -4,7 +4,7 @@
 
 ---
 
-## 🚀 Version 3.0.0 (Current) - "Standalone Edition"
+## 🚀 Version 1.0.0 (Current) - "Standalone Edition"
 **Release Date**: *August 2026*
 
 ### ✨ Highlights
@@ -245,7 +245,7 @@ Pillow==10.2.0 (Updated from 9.5.0)
 
 ## 🐛 Known Issues
 
-### Current Version (3.0.0)
+### Current Version (1.0.0)
 - **Screen Resolution**: Works best with 1920x1080
 - **Browser Zoom**: Requires 100% zoom level
 - **Multi-Monitor**: Primary monitor detection issues
@@ -294,7 +294,7 @@ Pillow==10.2.0 (Updated from 9.5.0)
 
 **🎮 Experience the evolution of RollerCoin automation 🎮**
 
-[Current Release](https://github.com/your-username/Auto-play-Rollercoin-game/releases/latest) • [All Releases](https://github.com/your-username/Auto-play-Rollercoin-game/releases) • [Documentation](README.md)
+[Current Release](https://github.com/HunterStile/Auto-play-Rollercoin-game/releases/latest) • [All Releases](https://github.com/HunterStile/Auto-play-Rollercoin-game/releases) • [Documentation](README.md)
 
 </div>
 

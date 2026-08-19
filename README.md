@@ -20,6 +20,10 @@ Grab the latest **`RollerCoin-bot.exe`** from the
 put it in any folder, double-click it, and the configuration GUI opens
 directly. Configure → **Save** → **Start Bot**. That's it.
 
+> 👉 **Want the step-by-step setup for the .exe?** Jump straight to the
+> **[TUTORIAL](TUTORIAL.md)** — it walks you through configuring the buttons
+> and positions from scratch (including the Scroll Down Value explained below).
+
 Everything (GUI, all 8 game bots, automation engine) ships inside the single
 `.exe`:
 
@@ -137,11 +141,12 @@ python main.py
 ```
 
 1. In the GUI, every field already has sensible defaults.
-2. Use **Find** on any coordinate field to capture your real mouse position.
-3. Tick the games you want to play and set their **order**.
-4. Click **Save Configuration**.
-5. Click **Start Bot** — the bot launches `Routine.py` in the background.
-6. Switch to the RollerCoin browser tab and enjoy. Use **Stop Bot** to halt.
+2. Check the **Scroll Down Value** (first setting) matches your page.
+3. Use **Find** on any coordinate field to capture your real mouse position.
+4. Tick the games you want to play and set their **order**.
+5. Click **Save Configuration**.
+6. Click **Start Bot** — the bot launches `Routine.py` in the background.
+7. Switch to the RollerCoin browser tab and enjoy. Use **Stop Bot** to halt.
 
 After saving once, you can also start the bot directly:
 
@@ -173,17 +178,28 @@ Typical defaults for 1920×1080 (from the saved `game_config.json`):
 
 | Game | Game position | Start button | Difficulty |
 |------|--------------|-------------|-----------|
-| CoinClick | 842, 226 | 903, 442 | — |
-| CoinFlip (Memory) | 939, 945 | 996, 505 | 1–3 |
-| 2048 | 1235, 784 | 876, 493 | — |
-| Hamster Climber | 834, 650 | 906, 510 | — |
-| CoinMatch | 586, 499 | 990, 450 | — |
-| Flappy Rocket | 1185, 642 | 906, 497 | — |
-| Coin Fisher | 578, 639 | 894, 488 | — |
-| Token Blaster | 1198, 485 | 889, 494 | — |
+| CoinClick | 842, 289 | 907, 427 | — |
+| CoinFlip (Memory) | 838, 1004 | 992, 500 | 1–3 |
+| 2048 | 1185, 857 | 915, 497 | — |
+| Hamster Climber | 854, 710 | 859, 481 | — |
+| Coin Fisher | 483, 696 | 904, 480 | — |
+| CoinMatch | 475, 554 | 990, 450 | — |
+| Flappy Rocket | 1174, 700 | 990, 450 | — |
+| Token Blaster | 1180, 506 | 990, 450 | — |
 
-> 📌 Scroll values are in `scroll_down` / `BANNER_EVENT` settings — needed only
-> if a promotional banner shifts the games grid.
+> 📌 **Scroll Down Value** (`scroll_down`) is the **first** setting in the GUI
+> because it's used in **two places**:
+>
+> 1. **The Find button** — before capturing a position, the bot scrolls the
+>    page by this amount, so the grid is aligned the same way it will be
+>    during play.
+> 2. **The bot itself** — after every round (refresh + `F5`) it re-applies the
+>    same scroll to realign the game tiles.
+>
+> A **fixed scroll** is needed so that the coordinates stay valid. If a
+> promotional banner is present, leave **Scroll Event Enabled** (`BANNER_EVENT`)
+> ticked so the scroll is applied; if there's no banner, untick it and the bot
+> won't scroll.
 
 ## 🏗️ Architecture
 

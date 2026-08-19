@@ -225,7 +225,7 @@ in the GUI, and it copies those numbers into the field.
 4. Quickly hover the mouse over the **CoinClick game tile** on the website,
    wait a moment (the app auto-scrolls to match your page).
 5. Press **OK**; a message shows the coordinates found:
-   `Position found: (842, 226) Do you want to use these coordinates?` → **Yes**.
+   `Position found: (842, 289) Do you want to use these coordinates?` → **Yes**.
 6. Repeat for each game position you'll play, and for the **Start** button of
    each game (the blue *PLAY* button in the middle of the tile).
 7. Also set **Gain Power** to the click button that collects hash-power after
@@ -233,6 +233,15 @@ in the GUI, and it copies those numbers into the field.
 
 > 🗌 Screens at 1920×1080 have similar defaults as in the README — but always
 > measure your own. And after RollerCoin changes its layout, calibrate again.
+
+> ⬇️ **Why the bot scrolls while you "Find"?** The **Scroll Down Value** is
+> the **first** setting in the GUI and it's used in **two places**. When you
+> press **Find**, the bot first scrolls the page by that amount — so the grid
+> is aligned exactly like it will be during play. The bot applies the **same
+> scroll again** after every round (F5 refresh) to realign the tiles. This is
+> why a **fixed scroll** is needed: it keeps your saved coordinates valid.
+> If a promotional banner is on the page, keep **Scroll Event Enabled** ticked
+> so the scroll is applied; no banner → untick it and the bot won't scroll.
 
 ---
 
@@ -242,14 +251,11 @@ In the **Game Order** section:
 
 1. Tick the checkbox next to each game you want to automate.
 2. Set the order number (1 = first) next to the Spinbox.
-3. If you use CoinFlip, the **Difficulty Settings** section lets you pick
-   level 1, 2 or 3 (grid size).
-4. (Optional) In **Other Settings**, keep `Banner Event Enabled` on if there's
-   a promotional banner pushed scroll. You can adjust `Scroll Down Value`.
-
-**Elections note:** In the **Elezioni** section you can enable elections mode.
-If you enable it, the bot will run **ONLY elections** in a loop and skip all
-games. Leave it off for normal game-playing.
+3. If you use CoinFlip, the **Other Settings** section has the **Difficulty**
+   level (1, 2 or 3 — grid size).
+4. In **Other Settings** you'll also find **Gain Power Position**.
+5. Games marked *(in lavorazione)* are still under development and are disabled
+   in the GUI until they're ready.
 
 Then press **Save Configuration** — this writes `game_config.json` and
 generates `Routine_config.py`.
