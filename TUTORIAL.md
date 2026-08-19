@@ -12,7 +12,7 @@ Forget installs, terminals, `pip`, venvs — none of it. The project ships a
 **single Windows executable**:
 
 1. Go to the **[Releases](https://github.com/HunterStile/Auto-play-Rollercoin-game/releases)**
-   page and download **`RollerCoinBot.exe`**.
+   page and download **`RollerCoin-bot.exe`**.
 2. Put it in any folder (ex. `C:\RollercoinBot`) and **double-click** it.
 3. The configuration window opens directly — your settings will be saved
    automatically next to the .exe.

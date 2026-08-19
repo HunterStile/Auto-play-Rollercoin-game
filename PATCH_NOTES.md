@@ -4,7 +4,43 @@
 
 ---
 
-## 🚀 Version 2.1.0 (Current) - "Multi-Game Mastery"
+## 🚀 Version 3.0.0 (Current) - "Standalone Edition"
+**Release Date**: *August 2026*
+
+### ✨ Highlights
+- **📦 Standalone single-file `.exe`**: everything (GUI + all game bots +
+  automation engine) ships in one file, renamed to **`RollerCoin-bot.exe`**.
+  No Python or dependencies needed on the target PC.
+- **🎨 Dark-theme GUI**: dynamically discovers games, one-click **Find**
+  positions, difficulty, order and looping rotation.
+- **💾 Config next to the .exe**: `game_config.json` / `Routine_config.py`
+  auto-created beside the executable.
+- **🚀 Start Bot inside the .exe**: runs the automation engine as a child of
+  the same executable (no `Routine.py` / Python launch required).
+
+### 🎮 Available Games
+
+> 8 games total: **5 fully working ✅** + **3 in lavorazione 🚧** (shown
+> disabled in the GUI until ready).
+
+| Game | Type | Status |
+|------|------|--------|
+| 🪙 CoinClick | Clicking | ✅ |
+| 🃏 CoinFlip (Memory) | Memory | ✅ |
+| 🔢 2048 Coins | Puzzle | ✅ |
+| 🐹 Hamster Climber | Reaction | ✅ |
+| 🪝 Coin Fisher | Aiming | ✅ |
+| 🎮 CoinMatch | Match-3 | 🚧 In lavorazione |
+| 🚀 Flappy Rocket | Flappy | 🚧 In lavorazione |
+| 💥 Token Blaster | Shooter | 🚧 In lavorazione |
+
+### 🐛 Bug Fixes
+- **💥 Splash screen fix**: the launch splash now closes automatically the
+  moment the bot GUI opens — no more lingering image until you close the bot.
+
+---
+
+## 🚀 Version 2.1.0 - "Multi-Game Mastery"
 **Release Date**: *May 2025*
 
 ### ✨ New Features
@@ -209,7 +245,7 @@ Pillow==10.2.0 (Updated from 9.5.0)
 
 ## 🐛 Known Issues
 
-### Current Version (2.1.0)
+### Current Version (3.0.0)
 - **Screen Resolution**: Works best with 1920x1080
 - **Browser Zoom**: Requires 100% zoom level
 - **Multi-Monitor**: Primary monitor detection issues

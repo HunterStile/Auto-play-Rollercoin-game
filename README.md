@@ -15,7 +15,7 @@ Terms of Service before use. Use it at your own risk.
 
 > ✅ **Non-programmers recommended path — no Python, no terminal, no deps.**
 
-Grab the latest **`RollerCoinBot.exe`** from the
+Grab the latest **`RollerCoin-bot.exe`** from the
 **[Releases](https://github.com/HunterStile/Auto-play-Rollercoin-game/releases)** page,
 put it in any folder, double-click it, and the configuration GUI opens
 directly. Configure → **Save** → **Start Bot**. That's it.
@@ -31,7 +31,7 @@ Everything (GUI, all 8 game bots, automation engine) ships inside the single
   unsigned PyInstaller executables — choose "More info → Run anyway".
 
 Build it yourself from source: `pip install -r dev-requirements.txt && python build_exe.py`
-(output: `dist/RollerCoinBot.exe`).
+(output: `dist/RollerCoin-bot.exe`).
 
 ## 🌟 Overview
 
@@ -41,7 +41,7 @@ It is built on a modular **game engine** (`game_engine/`) that auto-discovers
 game bots, so adding a new mini-game is as easy as dropping a new module in the
 `games/` folder.
 
-## 🎯 Supported Mini-Games (8)
+## 🎯 Mini-Games
 
 | # | Game | Type | Strategy | Status |
 |---|------|------|----------|--------|
@@ -49,10 +49,10 @@ game bots, so adding a new mini-game is as easy as dropping a new module in the
 | 2 | 🃏 **CoinFlip** (Memory) | Memory | Card color memorization, 3 difficulty levels | ✅ |
 | 3 | 🔢 **2048 Coins** | Puzzle | Arrow-key tile merging pattern | ✅ |
 | 4 | 🐹 **Hamster Climber** | Reaction | Green-bar detection + spacebar jumps | ✅ |
-| 5 | 🎮 **CoinMatch** | Match-3 | 8x8 grid scan + AI move evaluation | ✅ |
-| 6 | 🚀 **Flappy Rocket** | Flappy | Rocket tracking + obstacle gap detection | ✅ |
-| 7 | 🪝 **Coin Fisher** | Aiming | Coin clustering, shoots densest group | ✅ |
-| 8 | 💥 **Token Blaster** | Shooter | Auto-fire + red enemy targeting | ✅ |
+| 5 | 🪝 **Coin Fisher** | Aiming | Coin clustering, shoots densest group | ✅ |
+| 6 | 🎮 **CoinMatch** | Match-3 | 8x8 grid scan + AI move evaluation | 🚧 In lavorazione |
+| 7 | 🚀 **Flappy Rocket** | Flappy | Rocket tracking + obstacle gap detection | 🚧 In lavorazione |
+| 8 | 💥 **Token Blaster** | Shooter | Auto-fire + red enemy targeting | 🚧 In lavorazione |
 
 All games are registered at startup by `game_engine/games/__init__.py` and
 appear automatically in the GUI — no hardcoded game lists.
@@ -64,8 +64,6 @@ appear automatically in the GUI — no hardcoded game lists.
 - 🎯 **Position Finder** — a "Find" button in front of every coordinate field:
   move the mouse, confirm, done.
 - 🔄 **Smart rotation** — run games in the order you choose, looping forever.
-- 🗳️ **Elections mode** — automated vote claiming on RollerCoin elections
-  (enable in the GUI).
 - 💾 **Persistent config** — saves `game_config.json` and generates
   `Routine_config.py` automatically.
 - 🛡️ **Resilient** — automatic error recovery and game-ready detection.
@@ -75,7 +73,7 @@ appear automatically in the GUI — no hardcoded game lists.
 ## 📦 Installation
 
 > 👉 **Already have the .exe? You're done — skip this whole section.** Just
-> run `RollerCoinBot.exe`. Everything below is for running from source.
+> run `RollerCoin-bot.exe`. Everything below is for running from source.
 
 ### 1. Prerequisites
 
@@ -156,7 +154,7 @@ python Routine.py
 | Script | What it does |
 |--------|--------------|
 | `main.py` | Configuration GUI (recommended entry point) |
-| `Routine.py` | Runs games/elections using the saved config |
+| `Routine.py` | Runs the selected games using the saved config |
 | `aprivdeio.py` | Video tagger / playback for videos |
 | `autoclick.py` | Configurable autoclicker (mouse, keyboard, sequences) |
 | `cerca_posizione.py` | Standalone position finder |
@@ -197,7 +195,7 @@ Auto-play-Rollercoin-game/
 ├── game_engine/
 │   ├── base.py                 # BaseGame abstract class for all bots
 │   ├── registry.py             # Auto-discovery of game modules
-│   ├── orchestrator.py         # Rotation logic (games & elections)
+│   ├── orchestrator.py         # Rotation logic for selected games
 │   ├── utils.py                # Click, screenshot, game-ready helpers
 │   └── games/                  # One module per mini-game
 ├── functions.py                # Backward-compat re-exports (legacy)
@@ -208,7 +206,6 @@ Auto-play-Rollercoin-game/
 ├── Routine_config.py*          # Generated Python config (git-ignored)
 ├── aprivdeio.py                # Video tagger / player (bonus)
 ├── autoclick.py                # Autoclicker (bonus)
-├── Elections.py               # Elections voting bot
 ├── PATCH_NOTES.md              # Changelog
 ├── TUTORIAL.md                 # Step-by-step install & usage guide
 └── README.md                   # This file
@@ -228,7 +225,7 @@ double-click and go) and **source users** (install Python, create a venv,
 
 1. `pip install -r dev-requirements.txt`
 2. `python build_exe.py`
-3. Grab `dist/RollerCoinBot.exe` and distribute it — add it to a GitHub
+3. Grab `dist/RollerCoin-bot.exe` and distribute it — add it to a GitHub
    [Release](https://github.com/HunterStile/Auto-play-Rollercoin-game/releases), for example.
 
 ## 🐛 Troubleshooting
@@ -244,9 +241,6 @@ double-click and go) and **source users** (install Python, create a venv,
 
 ## 🔧 Advanced
 
-- **Elections** — in the "Elezioni" section you can enable elections mode.
-  Note: when enabled, the bot runs *only* elections in a loop (games are
-  skipped).
 - **Add a new game** — create `game_engine/games/<name>.py` with a
   `@register_game` class extending `BaseGame`, then restart the GUI. It shows
   up automatically.

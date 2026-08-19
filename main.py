@@ -31,6 +31,17 @@ EXE_DIR = os.path.dirname(os.path.abspath(sys.executable)) if FROZEN else os.pat
 CONFIG_JSON = os.path.join(EXE_DIR, "game_config.json")
 CONFIG_PY = os.path.join(EXE_DIR, "Routine_config.py")
 
+
+def _close_splash():
+    if not FROZEN:
+        return
+    try:
+        import pyi_splash
+        if pyi_splash.is_alive():
+            pyi_splash.close()
+    except Exception:
+        pass
+
 # --------------------------------------------------------------------------
 #  Dark theme palette (RollerCoin-inspired)
 # --------------------------------------------------------------------------
@@ -57,6 +68,18 @@ ACCENT_BTN = "Accent.TButton"
 SECONDARY_BTN = "Secondary.TButton"
 DANGER_BTN = "Danger.TButton"
 
+IN_PROGRESS_GAMES = {"coinmatch", "flappyrocket", "tokenblaster"}
+GAME_DISPLAY_ORDER = [
+    "coinclick",
+    "coinflip",
+    "coin2048",
+    "hamsterclimber",
+    "coinfisher",
+    "coinmatch",
+    "flappyrocket",
+    "tokenblaster",
+]
+
 
 class GameConfigGUI:
     def __init__(self):
@@ -68,7 +91,10 @@ class GameConfigGUI:
 
         # Discover games from registry
         self.games = GameRegistry.list_games()
-        self.games.sort(key=lambda g: g.display_name)
+        self.games.sort(key=lambda g: (
+            GAME_DISPLAY_ORDER.index(g.game_id)
+            if g.game_id in GAME_DISPLAY_ORDER else len(GAME_DISPLAY_ORDER)
+        ))
 
         self._setup_theme()
 
@@ -110,7 +136,6 @@ class GameConfigGUI:
         self._create_position_settings()
         self._create_game_order_settings()
         self._create_other_settings()
-        self._create_elezioni_settings()
         self._create_buttons()
         self._create_status_bar()
 
@@ -127,6 +152,11 @@ class GameConfigGUI:
         y = (self.root.winfo_screenheight() - self.root.winfo_height()) // 2
         self.root.geometry(f"+{max(0, x)}+{max(0, y)}")
 
+        # Splash is only useful while the GUI is still loading. Close it as
+        # soon as the window is fully built and positioned so it never lingers.
+        self.root.update_idletasks()
+        _close_splash()
+        self.root.after(100, _close_splash)  # safety net
         self.root.mainloop()
 
     # -- Theme --------------------------------------------------------------
@@ -308,76 +338,56 @@ class GameConfigGUI:
             if game.has_difficulty:
                 self.difficulty_vars[game.game_id] = tk.StringVar(value="2")
 
-        # Elections settings
-        self.elezioni_enabled = tk.BooleanVar(value=False)
-        self.elezioni_voto1_x = tk.StringVar(value="446")
-        self.elezioni_voto1_y = tk.StringVar(value="724")
-        self.elezioni_voto2_x = tk.StringVar(value="1358")
-        self.elezioni_voto2_y = tk.StringVar(value="720")
-        self.elezioni_scroll = tk.StringVar(value="500")
-        self.elezioni_wait_time = tk.StringVar(value="5")
-        self.elezioni_interval_minutes = tk.StringVar(value="60")
-
     # -- UI Creation ------------------------------------------------------
 
     def _create_position_settings(self):
-        """Dynamically create position fields for all games."""
-        pos_frame = ttk.LabelFrame(self.scrollable_frame, text="📍 Game Positions", padding=10)
+        """Create one row with game and start-button positions per game."""
+        pos_frame = ttk.LabelFrame(
+            self.scrollable_frame,
+            text="📍 Game and Start Button Positions",
+            padding=10,
+        )
         pos_frame.pack(fill=tk.X, padx=5, pady=(0, 8))
 
-        x_title = ttk.Label(pos_frame, text="X", style="Muted.TLabel")
-        y_title = ttk.Label(pos_frame, text="Y", style="Muted.TLabel")
-        x_title.grid(row=0, column=1, padx=5)
-        y_title.grid(row=0, column=2)
+        ttk.Label(pos_frame, text="Game position", style="Muted.TLabel").grid(
+            row=0, column=0, columnspan=4, sticky=tk.W, padx=(0, 8)
+        )
+        ttk.Label(pos_frame, text="Start button position", style="Muted.TLabel").grid(
+            row=0, column=4, columnspan=3, sticky=tk.W
+        )
+        for column, title in ((0, "Game"), (1, "X"), (2, "Y"), (4, "X"), (5, "Y")):
+            ttk.Label(pos_frame, text=title, style="Muted.TLabel").grid(
+                row=1, column=column, padx=5, sticky=tk.W
+            )
 
-        row = 1
-        for game in self.games:
+        for row, game in enumerate(self.games, start=2):
             gid = game.game_id
-            x_var, y_var = self.pos_vars[gid]
+            pos_x, pos_y = self.pos_vars[gid]
+            start_x, start_y = self.start_vars[gid]
 
-            ttk.Label(pos_frame, text=f"{game.display_name}:").grid(
-                row=row, column=0, sticky=tk.W
+            ttk.Label(pos_frame, text=game.display_name).grid(
+                row=row, column=0, sticky=tk.W, padx=(0, 8), pady=2
             )
-            ttk.Entry(pos_frame, textvariable=x_var, width=8).grid(
-                row=row, column=1, padx=5, pady=2
+            ttk.Entry(pos_frame, textvariable=pos_x, width=7).grid(
+                row=row, column=1, padx=3, pady=2
             )
-            ttk.Entry(pos_frame, textvariable=y_var, width=8).grid(
-                row=row, column=2, pady=2
+            ttk.Entry(pos_frame, textvariable=pos_y, width=7).grid(
+                row=row, column=2, padx=3, pady=2
             )
             ttk.Button(
                 pos_frame, text="Find", style=SECONDARY_BTN,
-                command=lambda xv=x_var, yv=y_var: self.find_position(xv, yv)
-            ).grid(row=row, column=3, padx=(8, 0), pady=2)
-
-            row += 1
-
-        # Start button positions
-        start_frame = ttk.LabelFrame(self.scrollable_frame, text="▶ Start Button Positions", padding=10)
-        start_frame.pack(fill=tk.X, padx=5, pady=(0, 8))
-
-        ttk.Label(start_frame, text="X", style="Muted.TLabel").grid(row=0, column=0, padx=5)
-        ttk.Label(start_frame, text="Y", style="Muted.TLabel").grid(row=0, column=1)
-
-        row = 1
-        for game in self.games:
-            gid = game.game_id
-            x_var, y_var = self.start_vars[gid]
-
-            ttk.Label(start_frame, text=f"{game.display_name} Start:").grid(
-                row=row, column=0, sticky=tk.W
+                command=lambda xv=pos_x, yv=pos_y: self.find_position(xv, yv)
+            ).grid(row=row, column=3, padx=(3, 10), pady=2)
+            ttk.Entry(pos_frame, textvariable=start_x, width=7).grid(
+                row=row, column=4, padx=3, pady=2
             )
-            ttk.Entry(start_frame, textvariable=x_var, width=8).grid(
-                row=row, column=1, padx=5, pady=2
-            )
-            ttk.Entry(start_frame, textvariable=y_var, width=8).grid(
-                row=row, column=2, pady=2
+            ttk.Entry(pos_frame, textvariable=start_y, width=7).grid(
+                row=row, column=5, padx=3, pady=2
             )
             ttk.Button(
-                start_frame, text="Find", style=SECONDARY_BTN,
-                command=lambda xv=x_var, yv=y_var: self.find_position(xv, yv)
-            ).grid(row=row, column=3, padx=(8, 0), pady=2)
-
-            row += 1
+                pos_frame, text="Find", style=SECONDARY_BTN,
+                command=lambda xv=start_x, yv=start_y: self.find_position(xv, yv)
+            ).grid(row=row, column=6, padx=3, pady=2)
 
         # Gain Power position
         gain_frame = ttk.LabelFrame(self.scrollable_frame, text="⚡ Gain Power Position", padding=10)
@@ -426,11 +436,14 @@ class GameConfigGUI:
             game_frame = ttk.Frame(order_frame)
             game_frame.pack(fill=tk.X, pady=2)
 
-            ttk.Checkbutton(
+            checkbutton = ttk.Checkbutton(
                 game_frame,
-                text=game.display_name,
-                variable=self.game_vars[gid]
-            ).pack(side=tk.LEFT)
+                text=(f"{game.display_name} (in lavorazione)"
+                      if gid in IN_PROGRESS_GAMES else game.display_name),
+                variable=self.game_vars[gid],
+                state="disabled" if gid in IN_PROGRESS_GAMES else "normal",
+            )
+            checkbutton.pack(side=tk.LEFT)
 
             ttk.Spinbox(
                 game_frame,
@@ -454,57 +467,6 @@ class GameConfigGUI:
             text="Scroll Event Enabled",
             variable=self.banner_event
         ).pack(anchor=tk.W, pady=4)
-
-    def _create_elezioni_settings(self):
-        """Elections settings."""
-        elezioni_frame = ttk.LabelFrame(self.scrollable_frame, text="🗳 Elezioni (Elections)", padding=10)
-        elezioni_frame.pack(fill=tk.X, padx=5, pady=(0, 8))
-
-        warning_label = ttk.Label(
-            elezioni_frame,
-            text="⚠️ ATTENZIONE: Se abiliti le elezioni, il bot eseguira SOLO "
-                 "le elezioni in loop.\nSe disabiliti, eseguira SOLO i giochi.",
-            foreground=AMBER,
-            font=(FONT, 9, "bold")
-        )
-        warning_label.pack(anchor=tk.W, pady=(0, 10))
-
-        ttk.Checkbutton(
-            elezioni_frame,
-            text="Abilita Elezioni (Disabilita Giochi)",
-            variable=self.elezioni_enabled
-        ).pack(anchor=tk.W, pady=4)
-
-        # Voto 1
-        ttk.Label(elezioni_frame, text="Posizione Voto 1:").pack(anchor=tk.W)
-        v1f = ttk.Frame(elezioni_frame)
-        v1f.pack(fill=tk.X, pady=2)
-        ttk.Entry(v1f, textvariable=self.elezioni_voto1_x, width=8).pack(side=tk.LEFT, padx=5)
-        ttk.Entry(v1f, textvariable=self.elezioni_voto1_y, width=8).pack(side=tk.LEFT)
-        ttk.Button(
-            v1f, text="Trova", style=SECONDARY_BTN,
-            command=lambda: self.find_position(self.elezioni_voto1_x, self.elezioni_voto1_y)
-        ).pack(side=tk.LEFT, padx=(8, 5))
-
-        # Voto 2
-        ttk.Label(elezioni_frame, text="Posizione Voto 2:").pack(anchor=tk.W, pady=(10, 0))
-        v2f = ttk.Frame(elezioni_frame)
-        v2f.pack(fill=tk.X, pady=2)
-        ttk.Entry(v2f, textvariable=self.elezioni_voto2_x, width=8).pack(side=tk.LEFT, padx=5)
-        ttk.Entry(v2f, textvariable=self.elezioni_voto2_y, width=8).pack(side=tk.LEFT)
-        ttk.Button(
-            v2f, text="Trova", style=SECONDARY_BTN,
-            command=lambda: self.find_position(self.elezioni_voto2_x, self.elezioni_voto2_y)
-        ).pack(side=tk.LEFT, padx=(8, 5))
-
-        ttk.Label(elezioni_frame, text="Valore Scroll:").pack(anchor=tk.W, pady=(10, 0))
-        ttk.Entry(elezioni_frame, textvariable=self.elezioni_scroll, width=10).pack(anchor=tk.W, pady=2)
-
-        ttk.Label(elezioni_frame, text="Tempo di attesa (secondi):").pack(anchor=tk.W, pady=(10, 0))
-        ttk.Entry(elezioni_frame, textvariable=self.elezioni_wait_time, width=10).pack(anchor=tk.W, pady=2)
-
-        ttk.Label(elezioni_frame, text="Intervallo tra elezioni (minuti):").pack(anchor=tk.W, pady=(10, 0))
-        ttk.Entry(elezioni_frame, textvariable=self.elezioni_interval_minutes, width=10).pack(anchor=tk.W, pady=2)
 
     def _create_buttons(self):
         """Action buttons."""
@@ -599,7 +561,7 @@ class GameConfigGUI:
         enabled = []
         for game in self.games:
             gid = game.game_id
-            if self.game_vars[gid].get():
+            if gid not in IN_PROGRESS_GAMES and self.game_vars[gid].get():
                 try:
                     order = int(self.order_vars[gid].get())
                 except ValueError:
@@ -636,14 +598,6 @@ class GameConfigGUI:
         # Keep legacy key
         if 'coinflip' in self.difficulty_vars:
             config['LEVEL_MEMORY'] = int(self.difficulty_vars['coinflip'].get())
-
-        # Elections
-        config['ELEZIONI_ENABLED'] = self.elezioni_enabled.get()
-        config['ELEZIONI_VOTO1_POSITION'] = (int(self.elezioni_voto1_x.get()), int(self.elezioni_voto1_y.get()))
-        config['ELEZIONI_VOTO2_POSITION'] = (int(self.elezioni_voto2_x.get()), int(self.elezioni_voto2_y.get()))
-        config['ELEZIONI_SCROLL'] = int(self.elezioni_scroll.get())
-        config['ELEZIONI_WAIT_TIME'] = int(self.elezioni_wait_time.get())
-        config['ELEZIONI_INTERVAL_MINUTES'] = int(self.elezioni_interval_minutes.get())
 
         # Save JSON
         try:
@@ -716,7 +670,7 @@ class GameConfigGUI:
             # Game order
             game_order = config.get('GAME_ORDER', [])
             for i, gid in enumerate(game_order):
-                if gid in self.game_vars:
+                if gid in self.game_vars and gid not in IN_PROGRESS_GAMES:
                     self.game_vars[gid].set(True)
                     self.order_vars[gid].set(str(i + 1))
 
@@ -727,18 +681,6 @@ class GameConfigGUI:
                     self.difficulty_vars[gid].set(str(config[key]))
             if 'coinflip' in self.difficulty_vars and 'LEVEL_MEMORY' in config:
                 self.difficulty_vars['coinflip'].set(str(config['LEVEL_MEMORY']))
-
-            # Elections
-            self.elezioni_enabled.set(config.get('ELEZIONI_ENABLED', False))
-            v1 = config.get('ELEZIONI_VOTO1_POSITION', (446, 724))
-            v2 = config.get('ELEZIONI_VOTO2_POSITION', (1358, 720))
-            self.elezioni_voto1_x.set(str(v1[0]))
-            self.elezioni_voto1_y.set(str(v1[1]))
-            self.elezioni_voto2_x.set(str(v2[0]))
-            self.elezioni_voto2_y.set(str(v2[1]))
-            self.elezioni_scroll.set(str(config.get('ELEZIONI_SCROLL', 500)))
-            self.elezioni_wait_time.set(str(config.get('ELEZIONI_WAIT_TIME', 5)))
-            self.elezioni_interval_minutes.set(str(config.get('ELEZIONI_INTERVAL_MINUTES', 60)))
 
         except Exception as e:
             print(f"Error loading configuration: {str(e)}")
@@ -779,15 +721,6 @@ class GameConfigGUI:
         lines.append('    # == Game Order ==')
         lines.append(f'    GAME_ORDER = {config.get("GAME_ORDER", [])}')
 
-        lines.append('')
-        lines.append('    # == Elections ==')
-        lines.append(f'    ELEZIONI_ENABLED = {config.get("ELEZIONI_ENABLED", False)}')
-        lines.append(f'    ELEZIONI_VOTO1_POSITION = {config.get("ELEZIONI_VOTO1_POSITION", (446, 724))}')
-        lines.append(f'    ELEZIONI_VOTO2_POSITION = {config.get("ELEZIONI_VOTO2_POSITION", (1358, 720))}')
-        lines.append(f'    ELEZIONI_SCROLL = {config.get("ELEZIONI_SCROLL", 500)}')
-        lines.append(f'    ELEZIONI_WAIT_TIME = {config.get("ELEZIONI_WAIT_TIME", 5)}')
-        lines.append(f'    ELEZIONI_INTERVAL_MINUTES = {config.get("ELEZIONI_INTERVAL_MINUTES", 60)}')
-
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(lines) + '\n')
 
@@ -823,7 +756,7 @@ def _run_selftest():
         "cerca_posizione",
         "Elezioni",
     ]
-    lines = [f"RollerCoinBot selftest - {sys.version}"]
+    lines = [f"RollerCoin-bot selftest - {sys.version}"]
     for mod in mods:
         try:
             importlib.import_module(mod)
@@ -839,8 +772,10 @@ def _run_selftest():
 
 if __name__ == "__main__":
     if "--selftest" in sys.argv:
+        _close_splash()
         _run_selftest()
     elif "--routine" in sys.argv:
+        _close_splash()
         _run_routine_mode()
     else:
         app = GameConfigGUI()
