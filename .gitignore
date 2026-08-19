@@ -6,3 +6,10 @@ game_config.json
 Routine_config.py
 
 video_tags.json
+
+# Build output
+build/
+dist/
+*.spec
+venv/
+*.ico

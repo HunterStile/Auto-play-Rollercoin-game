@@ -3,6 +3,8 @@ RollerCoin Auto-Play Bot - GUI Configuration Interface.
 
 Dynamically discovers games via GameRegistry and generates the UI.
 No more hardcoded game lists - add a new game module and it appears here automatically.
+
+Modern dark theme inspired by the RollerCoin brand (dark navy + orange accents).
 """
 
 import tkinter as tk
@@ -17,23 +19,72 @@ from pathlib import Path
 from game_engine.registry import GameRegistry
 import game_engine.games  # noqa: F401 - triggers game registrations
 
+# --------------------------------------------------------------------------
+#  Frozen-mode helpers (PyInstaller)
+#  - When packaged as an .exe, `sys.frozen` is truthy and `sys.executable`
+#    points at the .exe itself, not at a "python" binary. So all config files
+#    live next to the .exe, and the "start bot" action re-runs the SAME exe
+#    with the `--routine` flag instead of launching `python Routine.py`.
+# --------------------------------------------------------------------------
+FROZEN = getattr(sys, "frozen", False)
+EXE_DIR = os.path.dirname(os.path.abspath(sys.executable)) if FROZEN else os.path.dirname(os.path.abspath(__file__))
+CONFIG_JSON = os.path.join(EXE_DIR, "game_config.json")
+CONFIG_PY = os.path.join(EXE_DIR, "Routine_config.py")
+
+# --------------------------------------------------------------------------
+#  Dark theme palette (RollerCoin-inspired)
+# --------------------------------------------------------------------------
+BG          = "#0e0f1c"   # window background
+BG_CARD     = "#1a1c2e"   # card / panel background
+BG_INPUT    = "#232639"   # entry & spinbox background
+BG_HOVER    = "#2a2e45"   # hover state for secondary buttons
+BORDER      = "#373b56"   # panel & input borders
+HEADER      = "#15172a"   # top header bar background
+DARK        = "#12142a"   # focus ring (darker outline)
+TEXT        = "#e9ecf9"   # main text
+TEXT_MUTED  = "#8f95b5"   # secondary / muted text
+ACCENT      = "#ff7a35"   # RollerCoin orange (primary action)
+ACCENT_HOT  = "#ff9555"   # active / hover of accent
+ACCENT_DARK = "#c95414"   # pressed accent
+BLUE        = "#4cc9f0"   # focus ring
+GREEN       = "#4ade80"   # "running" status
+RED         = "#f87171"   # errors / stop
+AMBER       = "#fbbf24"   # warnings
+FONT        = "Segoe UI"
+
+# Action button styles
+ACCENT_BTN = "Accent.TButton"
+SECONDARY_BTN = "Secondary.TButton"
+DANGER_BTN = "Danger.TButton"
+
 
 class GameConfigGUI:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("RollerCoin Auto-Play Bot - Configuration")
-        self.root.geometry("650x900")
+        self.root.title("RollerCoin Auto-Play Bot — Configuration")
+        self.root.geometry("700x940")
+        self.root.minsize(640, 620)
+        self.root.configure(bg=BG)
 
         # Discover games from registry
         self.games = GameRegistry.list_games()
         self.games.sort(key=lambda g: g.display_name)
 
+        self._setup_theme()
+
+        # Fixed header (always visible at the top)
+        self._create_header()
+
         # Create main frame with scrollbar
         self.main_frame = ttk.Frame(self.root)
-        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=12, pady=(0, 12))
 
-        self.canvas = tk.Canvas(self.main_frame)
-        self.scrollbar = ttk.Scrollbar(self.main_frame, orient=tk.VERTICAL, command=self.canvas.yview)
+        self.canvas = tk.Canvas(
+            self.main_frame, bg=BG, highlightthickness=0, bd=0
+        )
+        self.scrollbar = ttk.Scrollbar(
+            self.main_frame, orient=tk.VERTICAL, command=self.canvas.yview
+        )
         self.scrollable_frame = ttk.Frame(self.canvas)
 
         self.scrollable_frame.bind(
@@ -47,6 +98,11 @@ class GameConfigGUI:
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
+        # Mouse wheel scrolling over the canvas
+        self.canvas.bind("<Enter>", lambda e: self.canvas.bind_all("<MouseWheel>",
+            lambda ev: self.canvas.yview_scroll(int(-1 * (ev.delta / 120)), "units")))
+        self.canvas.bind("<Leave>", lambda e: self.canvas.unbind_all("<MouseWheel>"))
+
         # Initialize dynamic variables
         self._init_variables()
 
@@ -56,21 +112,147 @@ class GameConfigGUI:
         self._create_other_settings()
         self._create_elezioni_settings()
         self._create_buttons()
+        self._create_status_bar()
 
         # Load existing config if available
         self.load_config()
 
         # Bot status
-        self.status_label = ttk.Label(
-            self.scrollable_frame,
-            text="Bot Status: Not Running",
-            font=('Helvetica', 10, 'bold')
-        )
-        self.status_label.pack(pady=10)
-
         self.bot_process = None
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        # Center the window on screen
+        self.root.update_idletasks()
+        x = (self.root.winfo_screenwidth() - self.root.winfo_width()) // 2
+        y = (self.root.winfo_screenheight() - self.root.winfo_height()) // 2
+        self.root.geometry(f"+{max(0, x)}+{max(0, y)}")
+
         self.root.mainloop()
+
+    # -- Theme --------------------------------------------------------------
+
+    def _setup_theme(self):
+        style = ttk.Style(self.root)
+        try:
+            style.theme_use("clam")
+        except tk.TclError:
+            pass  # keep platform default if 'clam' unavailable
+
+        # Base
+        style.configure(".", background=BG, foreground=TEXT,
+                        font=(FONT, 10), bordercolor=BORDER)
+
+        style.configure("TFrame", background=BG)
+        style.configure("TLabel", background=BG, foreground=TEXT, font=(FONT, 10))
+        style.configure("Muted.TLabel", foreground=TEXT_MUTED, font=(FONT, 9))
+        style.configure(
+            "TLabelframe",
+            background=BG_CARD,
+            bordercolor=BORDER,
+            relief=tk.FLAT,
+            padding=10,
+        )
+        style.configure(
+            "TLabelframe.Label",
+            background=BG_CARD,
+            foreground=ACCENT,
+            font=(FONT, 11, "bold"),
+        )
+
+        # Buttons
+        style.configure(
+            "Accent.TButton",
+            background=ACCENT, foreground="#191a24", font=(FONT, 10, "bold"),
+            borderwidth=0, focuscolor=ACCENT_HOT, padding=(16, 7),
+        )
+        style.map(
+            "Accent.TButton",
+            background=[("pressed", ACCENT), ("active", ACCENT_HOT)],
+            foreground=[("disabled", "#5a5c72")],
+        )
+
+        style.configure(
+            "Secondary.TButton",
+            background=BG_INPUT, foreground=TEXT, font=(FONT, 9),
+            borderwidth=0, padding=(10, 5),
+        )
+        style.map(
+            "Secondary.TButton",
+            background=[("pressed", BORDER), ("active", BG_HOVER)],
+            foreground=[("disabled", TEXT_MUTED)],
+        )
+
+        style.configure(
+            "Danger.TButton",
+            background=RED, foreground="#FFFFFF", font=(FONT, 10, "bold"),
+            borderwidth=0, padding=(16, 7),
+        )
+        style.map("Danger.TButton",
+                  background=[("pressed", "#b91c1c"), ("active", "#fca5a5")])
+
+        # Entries / spinboxes
+        style.configure(
+            "TEntry",
+            fieldbackground=BG_INPUT, foreground=TEXT, insertcolor=TEXT,
+            bordercolor=BORDER, lightcolor=BORDER, darkcolor=BORDER,
+            relief=tk.FLAT, padding=6,
+        )
+        style.map("TEntry",
+                  bordercolor=[("focus", DARK)],
+                  lightcolor=[("focus", DARK)],
+                  darkcolor=[("focus", DARK)],
+                  fieldbackground=[("disabled", BG_CARD)])
+
+        style.configure(
+            "TSpinbox",
+            fieldbackground=BG_INPUT, foreground=TEXT, insertcolor=TEXT,
+            bordercolor=BORDER, lightcolor=BORDER, darkcolor=BORDER,
+            relief=tk.FLAT, padding=4, background=BG_INPUT, arrowcolor=TEXT,
+        )
+        style.map("TSpinbox",
+                  bordercolor=[("focus", DARK)],
+                  fieldbackground=[("readonly", BG_INPUT), ("disabled", BG_CARD)])
+
+        # Checkbutton
+        style.configure(
+            "TCheckbutton",
+            background=BG_CARD, foreground=TEXT, font=(FONT, 10),
+            indicatorcolor=BG_INPUT, focusthickness=0,
+        )
+        style.map("TCheckbutton",
+                  background=[("active", BG_CARD)],
+                  indicatorcolor=[("selected", ACCENT)])
+
+        # Scrollbar
+        style.configure(
+            "Vertical.TScrollbar",
+            background=BG_INPUT, troughcolor=BG, bordercolor=BG,
+            arrowcolor=TEXT, relief=tk.FLAT, width=12,
+        )
+        style.map("Vertical.TScrollbar",
+                  background=[("active", BG_HOVER)])
+
+    def _create_header(self):
+        header = tk.Frame(self.root, bg=HEADER, height=76, bd=0)
+        header.pack(fill=tk.X)
+        header.pack_propagate(False)
+
+        tk.Label(header, text="🎮", font=(FONT, 26), bg=HEADER, fg=TEXT).pack(
+            side=tk.LEFT, padx=(16, 8), pady=12
+        )
+
+        title_frame = tk.Frame(header, bg=HEADER)
+        title_frame.pack(side=tk.LEFT, fill=tk.Y, pady=10)
+
+        tk.Label(title_frame, text="RollerCoin Auto-Play Bot",
+                 font=(FONT, 15, "bold"), bg=HEADER, fg=TEXT).pack(anchor=tk.W)
+        tk.Label(title_frame, text="Configuration — powered by the Game Engine",
+                 font=(FONT, 9), bg=HEADER, fg=ACCENT).pack(anchor=tk.W)
+
+        badge = tk.Label(header, text=f" {len(self.games)} games detected ",
+                         font=(FONT, 10, "bold"), bg=ACCENT, fg="#1c1c1c",
+                         padx=10, pady=4)
+        badge.pack(side=tk.RIGHT, padx=(0, 16))
 
     # -- Dynamic Variable Initialization ----------------------------------
 
@@ -140,10 +322,15 @@ class GameConfigGUI:
 
     def _create_position_settings(self):
         """Dynamically create position fields for all games."""
-        pos_frame = ttk.LabelFrame(self.scrollable_frame, text="Game Positions", padding=10)
-        pos_frame.pack(fill=tk.X, padx=5, pady=5)
+        pos_frame = ttk.LabelFrame(self.scrollable_frame, text="📍 Game Positions", padding=10)
+        pos_frame.pack(fill=tk.X, padx=5, pady=(0, 8))
 
-        row = 0
+        x_title = ttk.Label(pos_frame, text="X", style="Muted.TLabel")
+        y_title = ttk.Label(pos_frame, text="Y", style="Muted.TLabel")
+        x_title.grid(row=0, column=1, padx=5)
+        y_title.grid(row=0, column=2)
+
+        row = 1
         for game in self.games:
             gid = game.game_id
             x_var, y_var = self.pos_vars[gid]
@@ -152,24 +339,26 @@ class GameConfigGUI:
                 row=row, column=0, sticky=tk.W
             )
             ttk.Entry(pos_frame, textvariable=x_var, width=8).grid(
-                row=row, column=1, padx=5
+                row=row, column=1, padx=5, pady=2
             )
             ttk.Entry(pos_frame, textvariable=y_var, width=8).grid(
-                row=row, column=2
+                row=row, column=2, pady=2
             )
             ttk.Button(
-                pos_frame, text="Find",
+                pos_frame, text="Find", style=SECONDARY_BTN,
                 command=lambda xv=x_var, yv=y_var: self.find_position(xv, yv)
-            ).grid(row=row, column=3, padx=5)
+            ).grid(row=row, column=3, padx=(8, 0), pady=2)
 
-            pos_frame.grid_rowconfigure(row, pad=5)
             row += 1
 
         # Start button positions
-        start_frame = ttk.LabelFrame(self.scrollable_frame, text="Start Button Positions", padding=10)
-        start_frame.pack(fill=tk.X, padx=5, pady=5)
+        start_frame = ttk.LabelFrame(self.scrollable_frame, text="▶ Start Button Positions", padding=10)
+        start_frame.pack(fill=tk.X, padx=5, pady=(0, 8))
 
-        row = 0
+        ttk.Label(start_frame, text="X", style="Muted.TLabel").grid(row=0, column=0, padx=5)
+        ttk.Label(start_frame, text="Y", style="Muted.TLabel").grid(row=0, column=1)
+
+        row = 1
         for game in self.games:
             gid = game.game_id
             x_var, y_var = self.start_vars[gid]
@@ -178,42 +367,41 @@ class GameConfigGUI:
                 row=row, column=0, sticky=tk.W
             )
             ttk.Entry(start_frame, textvariable=x_var, width=8).grid(
-                row=row, column=1, padx=5
+                row=row, column=1, padx=5, pady=2
             )
             ttk.Entry(start_frame, textvariable=y_var, width=8).grid(
-                row=row, column=2
+                row=row, column=2, pady=2
             )
             ttk.Button(
-                start_frame, text="Find",
+                start_frame, text="Find", style=SECONDARY_BTN,
                 command=lambda xv=x_var, yv=y_var: self.find_position(xv, yv)
-            ).grid(row=row, column=3, padx=5)
+            ).grid(row=row, column=3, padx=(8, 0), pady=2)
 
-            start_frame.grid_rowconfigure(row, pad=5)
             row += 1
 
         # Gain Power position
-        gain_frame = ttk.LabelFrame(self.scrollable_frame, text="Gain Power Position", padding=10)
-        gain_frame.pack(fill=tk.X, padx=5, pady=5)
+        gain_frame = ttk.LabelFrame(self.scrollable_frame, text="⚡ Gain Power Position", padding=10)
+        gain_frame.pack(fill=tk.X, padx=5, pady=(0, 8))
 
         ttk.Label(gain_frame, text="Gain Power:").grid(row=0, column=0, sticky=tk.W)
         ttk.Entry(gain_frame, textvariable=self.gain_power_x, width=8).grid(row=0, column=1, padx=5)
         ttk.Entry(gain_frame, textvariable=self.gain_power_y, width=8).grid(row=0, column=2)
         ttk.Button(
-            gain_frame, text="Find",
+            gain_frame, text="Find", style=SECONDARY_BTN,
             command=lambda: self.find_position(self.gain_power_x, self.gain_power_y)
-        ).grid(row=0, column=3, padx=5)
+        ).grid(row=0, column=3, padx=(8, 0))
 
         # Difficulty settings for games that support it
         diff_games = [g for g in self.games if g.has_difficulty]
         if diff_games:
-            diff_frame = ttk.LabelFrame(self.scrollable_frame, text="Difficulty Settings", padding=10)
-            diff_frame.pack(fill=tk.X, padx=5, pady=5)
+            diff_frame = ttk.LabelFrame(self.scrollable_frame, text="🎚 Difficulty Settings", padding=10)
+            diff_frame.pack(fill=tk.X, padx=5, pady=(0, 8))
 
             row = 0
             for game in diff_games:
                 gid = game.game_id
                 ttk.Label(diff_frame, text=f"{game.display_name} Level:").grid(
-                    row=row, column=0, sticky=tk.W
+                    row=row, column=0, sticky=tk.W, pady=2
                 )
                 ttk.Spinbox(
                     diff_frame,
@@ -222,15 +410,15 @@ class GameConfigGUI:
                     textvariable=self.difficulty_vars[gid],
                     width=5,
                     state="readonly"
-                ).grid(row=row, column=1, padx=5)
+                ).grid(row=row, column=1, padx=5, pady=2)
                 row += 1
 
     def _create_game_order_settings(self):
         """Dynamically create game order selection."""
-        order_frame = ttk.LabelFrame(self.scrollable_frame, text="Game Order", padding=10)
-        order_frame.pack(fill=tk.X, padx=5, pady=5)
+        order_frame = ttk.LabelFrame(self.scrollable_frame, text="🔁 Game Order", padding=10)
+        order_frame.pack(fill=tk.X, padx=5, pady=(0, 8))
 
-        ttk.Label(order_frame, text="Select games and set their order:").pack(anchor=tk.W)
+        ttk.Label(order_frame, text="Select games and set their order:", style="Muted.TLabel").pack(anchor=tk.W, pady=(0, 4))
 
         num_games = len(self.games)
         for game in self.games:
@@ -255,29 +443,29 @@ class GameConfigGUI:
 
     def _create_other_settings(self):
         """General settings."""
-        other_frame = ttk.LabelFrame(self.scrollable_frame, text="Other Settings", padding=10)
-        other_frame.pack(fill=tk.X, padx=5, pady=5)
+        other_frame = ttk.LabelFrame(self.scrollable_frame, text="🛠 Other Settings", padding=10)
+        other_frame.pack(fill=tk.X, padx=5, pady=(0, 8))
 
         ttk.Label(other_frame, text="Scroll Down Value:").pack(anchor=tk.W)
-        ttk.Entry(other_frame, textvariable=self.scroll_down).pack(fill=tk.X, pady=5)
+        ttk.Entry(other_frame, textvariable=self.scroll_down).pack(fill=tk.X, pady=4)
 
         ttk.Checkbutton(
             other_frame,
             text="Banner Event Enabled",
             variable=self.banner_event
-        ).pack(anchor=tk.W, pady=5)
+        ).pack(anchor=tk.W, pady=4)
 
     def _create_elezioni_settings(self):
         """Elections settings."""
-        elezioni_frame = ttk.LabelFrame(self.scrollable_frame, text="Elezioni (Elections)", padding=10)
-        elezioni_frame.pack(fill=tk.X, padx=5, pady=5)
+        elezioni_frame = ttk.LabelFrame(self.scrollable_frame, text="🗳 Elezioni (Elections)", padding=10)
+        elezioni_frame.pack(fill=tk.X, padx=5, pady=(0, 8))
 
         warning_label = ttk.Label(
             elezioni_frame,
-            text="!! ATTENZIONE: Se abiliti le elezioni, il bot eseguira SOLO le elezioni in loop.\n"
-                 "Se disabiliti, eseguira SOLO i giochi.",
-            foreground="red",
-            font=('Helvetica', 9, 'bold')
+            text="⚠️ ATTENZIONE: Se abiliti le elezioni, il bot eseguira SOLO "
+                 "le elezioni in loop.\nSe disabiliti, eseguira SOLO i giochi.",
+            foreground=AMBER,
+            font=(FONT, 9, "bold")
         )
         warning_label.pack(anchor=tk.W, pady=(0, 10))
 
@@ -285,7 +473,7 @@ class GameConfigGUI:
             elezioni_frame,
             text="Abilita Elezioni (Disabilita Giochi)",
             variable=self.elezioni_enabled
-        ).pack(anchor=tk.W, pady=5)
+        ).pack(anchor=tk.W, pady=4)
 
         # Voto 1
         ttk.Label(elezioni_frame, text="Posizione Voto 1:").pack(anchor=tk.W)
@@ -294,9 +482,9 @@ class GameConfigGUI:
         ttk.Entry(v1f, textvariable=self.elezioni_voto1_x, width=8).pack(side=tk.LEFT, padx=5)
         ttk.Entry(v1f, textvariable=self.elezioni_voto1_y, width=8).pack(side=tk.LEFT)
         ttk.Button(
-            v1f, text="Trova",
+            v1f, text="Trova", style=SECONDARY_BTN,
             command=lambda: self.find_position(self.elezioni_voto1_x, self.elezioni_voto1_y)
-        ).pack(side=tk.LEFT, padx=5)
+        ).pack(side=tk.LEFT, padx=(8, 5))
 
         # Voto 2
         ttk.Label(elezioni_frame, text="Posizione Voto 2:").pack(anchor=tk.W, pady=(10, 0))
@@ -305,9 +493,9 @@ class GameConfigGUI:
         ttk.Entry(v2f, textvariable=self.elezioni_voto2_x, width=8).pack(side=tk.LEFT, padx=5)
         ttk.Entry(v2f, textvariable=self.elezioni_voto2_y, width=8).pack(side=tk.LEFT)
         ttk.Button(
-            v2f, text="Trova",
+            v2f, text="Trova", style=SECONDARY_BTN,
             command=lambda: self.find_position(self.elezioni_voto2_x, self.elezioni_voto2_y)
-        ).pack(side=tk.LEFT, padx=5)
+        ).pack(side=tk.LEFT, padx=(8, 5))
 
         ttk.Label(elezioni_frame, text="Valore Scroll:").pack(anchor=tk.W, pady=(10, 0))
         ttk.Entry(elezioni_frame, textvariable=self.elezioni_scroll, width=10).pack(anchor=tk.W, pady=2)
@@ -321,33 +509,55 @@ class GameConfigGUI:
     def _create_buttons(self):
         """Action buttons."""
         btn_frame = ttk.Frame(self.scrollable_frame)
-        btn_frame.pack(fill=tk.X, pady=20)
+        btn_frame.pack(fill=tk.X, pady=14)
 
-        ttk.Button(btn_frame, text="Save Configuration", command=self.save_config).pack(
-            side=tk.LEFT, padx=5
-        )
-        ttk.Button(btn_frame, text="Load Configuration", command=self.load_config).pack(
-            side=tk.LEFT, padx=5
-        )
+        ttk.Button(btn_frame, text="💾 Save Configuration",
+                   style=ACCENT_BTN, command=self.save_config).pack(side=tk.LEFT, padx=4)
+        ttk.Button(btn_frame, text="📂 Load Configuration",
+                   style=SECONDARY_BTN, command=self.load_config).pack(side=tk.LEFT, padx=4)
 
-        self.bot_button = ttk.Button(btn_frame, text="Start Bot", command=self.toggle_bot)
-        self.bot_button.pack(side=tk.LEFT, padx=5)
+        self.bot_button = ttk.Button(btn_frame, text="🚀 Start Bot",
+                                     style=ACCENT_BTN, command=self.toggle_bot)
+        self.bot_button.pack(side=tk.LEFT, padx=4)
 
-        # Show discovered games info
-        info_text = f"Discovered {len(self.games)} games"
-        ttk.Label(btn_frame, text=info_text, font=('Helvetica', 8, 'italic')).pack(
-            side=tk.RIGHT, padx=5
-        )
+        ttk.Label(
+            btn_frame,
+            text=f"Auto-discovered {len(self.games)} games via the registry",
+            style="Muted.TLabel"
+        ).pack(side=tk.RIGHT, padx=5)
+
+    def _create_status_bar(self):
+        """Status bar pinned at the bottom of the scrollable area."""
+        bar = ttk.Frame(self.scrollable_frame)
+        bar.pack(fill=tk.X, padx=5, pady=(4, 2))
+
+        self.status_dot = tk.Label(bar, text="●", fg=TEXT_MUTED, bg=BG_CARD,
+                                   font=(FONT, 12))
+        self.status_dot.pack(side=tk.LEFT, padx=(4, 4))
+
+        self.status_label = ttk.Label(bar, text="Bot Status: Not Running",
+                                      font=(FONT, 10, "bold"))
+        self.status_label.pack(side=tk.LEFT)
 
     # -- Bot Control ------------------------------------------------------
+
+    def _bot_command(self):
+        """Command used to launch the automation engine in a child process."""
+        if FROZEN:
+            # In the .exe build there is no Python interpreter: re-run the exe
+            # itself in "routine" mode.
+            return [sys.executable, "--routine"]
+        # Source mode: the classic entry point.
+        return [sys.executable, os.path.join(EXE_DIR, "Routine.py")]
 
     def toggle_bot(self):
         if self.bot_process is None:
             self.save_config()
             try:
-                self.bot_process = subprocess.Popen([sys.executable, "Routine.py"])
+                self.bot_process = subprocess.Popen(self._bot_command(), cwd=EXE_DIR)
                 self.status_label.config(text="Bot Status: Running")
-                self.bot_button.config(text="Stop Bot")
+                self.status_dot.config(fg=GREEN)
+                self.bot_button.config(text="■ Stop Bot", style=DANGER_BTN)
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to start bot: {str(e)}")
         else:
@@ -355,7 +565,8 @@ class GameConfigGUI:
                 self.bot_process.terminate()
                 self.bot_process = None
                 self.status_label.config(text="Bot Status: Stopped")
-                self.bot_button.config(text="Start Bot")
+                self.status_dot.config(fg=RED)
+                self.bot_button.config(text="🚀 Start Bot", style=ACCENT_BTN)
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to stop bot: {str(e)}")
 
@@ -436,9 +647,9 @@ class GameConfigGUI:
 
         # Save JSON
         try:
-            with open('game_config.json', 'w') as f:
+            with open(CONFIG_JSON, 'w') as f:
                 json.dump(config, f, indent=4)
-        except PermissionError:
+        except (PermissionError, FileNotFoundError):
             try:
                 home_dir = os.path.expanduser("~")
                 config_path = os.path.join(home_dir, "rollercoin_game_config.json")
@@ -452,7 +663,7 @@ class GameConfigGUI:
         # Generate Python config file
         try:
             self.generate_config_file(config)
-        except PermissionError:
+        except (PermissionError, FileNotFoundError):
             try:
                 home_dir = os.path.expanduser("~")
                 config_path = os.path.join(home_dir, "Routine_config.py")
@@ -464,7 +675,7 @@ class GameConfigGUI:
     def load_config(self):
         """Load and populate configuration from file."""
         try:
-            config_path = 'game_config.json'
+            config_path = CONFIG_JSON
             if not os.path.exists(config_path):
                 home_dir = os.path.expanduser("~")
                 config_path = os.path.join(home_dir, "rollercoin_game_config.json")
@@ -534,7 +745,7 @@ class GameConfigGUI:
 
     # -- Config File Generation ------------------------------------------
 
-    def generate_config_file(self, config, file_path='Routine_config.py'):
+    def generate_config_file(self, config, file_path=CONFIG_PY):
         """Dynamically generate the Routine_config.py file."""
         lines = ['class GameRoutineConfig:']
 
@@ -581,5 +792,55 @@ class GameConfigGUI:
             f.write('\n'.join(lines) + '\n')
 
 
+def _run_routine_mode():
+    """Frozen-child mode: run the automation engine inside the .exe itself."""
+    # Only the config generated NEXT TO the .exe is valid, never a bundled copy.
+    if not os.path.exists(CONFIG_PY):
+        sys.exit(1)  # windowed: silent fail, GUI prompts the user to save first
+
+    # Make the generated Routine_config.py importable (it lives next to the .exe)
+    if EXE_DIR not in sys.path:
+        sys.path.insert(0, EXE_DIR)
+
+    from game_engine.orchestrator import GameOrchestrator
+    from Routine_config import GameRoutineConfig
+
+    GameOrchestrator(GameRoutineConfig).run()
+
+
+def _run_selftest():
+    """Verify all required modules made it into the package. Writes
+    a 'selftest.txt' next to the executable (useful for troubleshooting
+    the .exe build and for users reporting issues)."""
+    import importlib
+
+    mods = [
+        "game_engine",
+        "game_engine.games",
+        "game_engine.orchestrator",
+        "game_engine.utils",
+        "functions",
+        "cerca_posizione",
+        "Elezioni",
+    ]
+    lines = [f"RollerCoinBot selftest - {sys.version}"]
+    for mod in mods:
+        try:
+            importlib.import_module(mod)
+            lines.append(f"OK   {mod}")
+        except Exception as e:
+            lines.append(f"FAIL {mod}: {e}")
+
+    report = os.path.join(EXE_DIR, "selftest.txt")
+    with open(report, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+    sys.exit(0)
+
+
 if __name__ == "__main__":
-    app = GameConfigGUI()
+    if "--selftest" in sys.argv:
+        _run_selftest()
+    elif "--routine" in sys.argv:
+        _run_routine_mode()
+    else:
+        app = GameConfigGUI()

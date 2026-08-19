@@ -1,228 +1,274 @@
 # 🎮 RollerCoin Auto-Play Bot
 
-[![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![GUI](https://img.shields.io/badge/GUI-Tkinter-orange.svg)](https://docs.python.org/3/library/tkinter.html)
 [![Gaming](https://img.shields.io/badge/Gaming-Automation-red.svg)](https://rollercoin.com)
+[![Platform](https://img.shields.io/badge/Platform-Windows-0078d6.svg)](https://www.microsoft.com/windows)
 
-> **Advanced automation system for RollerCoin mini-games with AI-powered strategies and configurable GUI**
+> **Advanced automation system for RollerCoin mini-games with AI-powered strategies and a configurable dark-theme GUI**
+
+> ⚠️ This bot is for **educational purposes only**. Review RollerCoin's
+Terms of Service before use. Use it at your own risk.
+
+## 💾 Don't want to install Python? Download the .exe
+
+> ✅ **Non-programmers recommended path — no Python, no terminal, no deps.**
+
+Grab the latest **`RollerCoinBot.exe`** from the
+**[Releases](https://github.com/HunterStile/Auto-play-Rollercoin-game/releases)** page,
+put it in any folder, double-click it, and the configuration GUI opens
+directly. Configure → **Save** → **Start Bot**. That's it.
+
+Everything (GUI, all 8 game bots, automation engine) ships inside the single
+`.exe`:
+
+- Config files (`game_config.json`, `Routine_config.py`) are created **next to
+  the .exe** automatically.
+- "Start Bot" runs the automation engine as a child of the same .exe — no
+  Python needed on the target PC.
+- If SmartScreen/antivirus warns: it's the well-known false positive for
+  unsigned PyInstaller executables — choose "More info → Run anyway".
+
+Build it yourself from source: `pip install -r dev-requirements.txt && python build_exe.py`
+(output: `dist/RollerCoinBot.exe`).
 
 ## 🌟 Overview
 
-RollerCoin Auto-Play Bot is a sophisticated automation system designed to play RollerCoin mini-games automatically, maximizing hash power earnings through intelligent gameplay strategies. The bot supports 5 different mini-games with optimized algorithms and a user-friendly configuration interface.
+RollerCoin Auto-Play Bot is a Python automation system that plays RollerCoin
+mini-games automatically, maximizing your hash power earnings while you sleep.
+It is built on a modular **game engine** (`game_engine/`) that auto-discovers
+game bots, so adding a new mini-game is as easy as dropping a new module in the
+`games/` folder.
 
-### 🎯 Key Features
+## 🎯 Supported Mini-Games (8)
 
-| Feature | Description | Status |
-|---------|-------------|--------|
-| **Multi-Game Support** | 5 optimized mini-games | ✅ Complete |
-| **GUI Configuration** | Easy-to-use interface | ✅ Complete |
-| **Smart Algorithms** | AI-powered game strategies | ✅ Complete |
-| **Auto-Detection** | Game state recognition | ✅ Complete |
-| **Performance Metrics** | Real-time statistics | ✅ Complete |
-| **Error Recovery** | Robust error handling | ✅ Complete |
+| # | Game | Type | Strategy | Status |
+|---|------|------|----------|--------|
+| 1 | 🪙 **CoinClick** | Clicking | Pixel color detection & rapid clicks | ✅ |
+| 2 | 🃏 **CoinFlip** (Memory) | Memory | Card color memorization, 3 difficulty levels | ✅ |
+| 3 | 🔢 **2048 Coins** | Puzzle | Arrow-key tile merging pattern | ✅ |
+| 4 | 🐹 **Hamster Climber** | Reaction | Green-bar detection + spacebar jumps | ✅ |
+| 5 | 🎮 **CoinMatch** | Match-3 | 8x8 grid scan + AI move evaluation | ✅ |
+| 6 | 🚀 **Flappy Rocket** | Flappy | Rocket tracking + obstacle gap detection | ✅ |
+| 7 | 🪝 **Coin Fisher** | Aiming | Coin clustering, shoots densest group | ✅ |
+| 8 | 💥 **Token Blaster** | Shooter | Auto-fire + red enemy targeting | ✅ |
 
-## 🚀 Supported Mini-Games
+All games are registered at startup by `game_engine/games/__init__.py` and
+appear automatically in the GUI — no hardcoded game lists.
 
-### 1. 🪙 CoinClick
-- **Type**: Clicking Game
-- **Strategy**: Rapid-fire clicking with optimal timing
-- **Performance**: ~95% accuracy rate
+## ✨ Key Features
 
-### 2. 🎲 CoinFlip 
-- **Type**: Pattern Recognition
-- **Strategy**: Statistical analysis of flip patterns
-- **Performance**: ~78% win rate
+- 🎨 **Dark-themed configuration GUI** — discover games dynamically, set
+  positions, difficulty and order, all from one clean interface.
+- 🎯 **Position Finder** — a "Find" button in front of every coordinate field:
+  move the mouse, confirm, done.
+- 🔄 **Smart rotation** — run games in the order you choose, looping forever.
+- 🗳️ **Elections mode** — automated vote claiming on RollerCoin elections
+  (enable in the GUI).
+- 💾 **Persistent config** — saves `game_config.json` and generates
+  `Routine_config.py` automatically.
+- 🛡️ **Resilient** — automatic error recovery and game-ready detection.
+- 🎥 **Bonus tools**: a video tagger/player (`aprivdeio.py`) and an
+  autoclicker (`autoclick.py`).
 
-### 3. 🧩 2048 Coins
-- **Type**: Puzzle Game
-- **Strategy**: Advanced tile merging algorithm
-- **Performance**: ~67% win rate
+## 📦 Installation
 
-### 4. 🐹 Hamster Climber
-- **Type**: Timing Game
-- **Strategy**: Physics-based movement prediction
-- **Performance**: ~95% completion rate
+> 👉 **Already have the .exe? You're done — skip this whole section.** Just
+> run `RollerCoinBot.exe`. Everything below is for running from source.
 
-### 5. 🎮 CoinMatch
-- **Type**: Memory Game
-- **Strategy**: Pattern memorization and matching
-- **Performance**: Adaptive difficulty scaling
+### 1. Prerequisites
 
-## 📦 Quick Start
+- **Python 3.8+** (tested with 3.12) → download from
+  [python.org](https://www.python.org/downloads/) and tick
+  *"Add Python to PATH"* during setup.
+- **Windows** (PyAutoGUI screen control).
+- **RollerCoin account**, logged in.
+- Screen resolution **1920×1080** with browser zoom at **100%** (recommended).
 
-### Prerequisites
+### 2. Clone the repo
 
-- **Python 3.7+**
-- **Windows OS** (for PyAutoGUI compatibility)
-- **RollerCoin Account** (registered and logged in)
-- **Screen Resolution**: 1920x1080 recommended
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/Auto-play-Rollercoin-game.git
-   cd Auto-play-Rollercoin-game
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Run the configuration GUI**
-   ```bash
-   python main.py
-   ```
-
-### Initial Setup
-
-1. **Launch RollerCoin** in your browser
-2. **Navigate to mini-games section**
-3. **Run the bot configuration**
-4. **Calibrate screen positions** using the GUI
-5. **Start automation**
-
-## 🔧 Configuration
-
-### GUI Interface
-
-The bot includes a comprehensive GUI for easy configuration:
-
-- **Game Selection**: Choose which games to play
-- **Position Calibration**: Set screen coordinates
-- **Timing Configuration**: Adjust delays and intervals
-- **Performance Settings**: Optimize for your system
-
-### Game-Specific Settings
-
-```python
-# Example configuration
-COINCLICK_POSITION = (960, 540)
-MEMORY_POSITION = (960, 400)
-GIOCO2048_POSITION = (960, 540)
-HAMSTERCLIMBER_POSITION = (960, 540)
-COINMATCH_POSITION = (960, 540)
+```bash
+git clone https://github.com/HunterStile/Auto-play-Rollercoin-game.git
+cd Auto-play-Rollercoin-game
 ```
+
+### 3. Create a virtual environment (recommended)
+
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+
+### 4. Install dependencies
+
+From the project root:
+
+```bash
+pip install -r requirements.txt
+```
+
+or use the included installer:
+
+```bash
+cd Installazione
+python install.py
+cd ..
+```
+
+Requirements (`requirements.txt`):
+
+```txt
+pyautogui==0.9.54   # screen automation (mouse + keyboard)
+keyboard==0.13.5    # global key input handling
+Pillow==10.2.0      # image processing
+pynput==1.7.6       # low-level mouse/keyboard listeners
+```
+
+> 💡 **Troubleshooting import errors?** Missing dependencies are the #1 cause of
+> "module not found". Uninstall all of the above and reinstall:
+> `pip uninstall -y pyautogui keyboard Pillow pynput` then
+> `pip install -r requirements.txt`.
+
+## 🚀 Quick Start
+
+The correct daily workflow is **configure → save → start**:
+
+```bash
+python main.py
+```
+
+1. In the GUI, every field already has sensible defaults.
+2. Use **Find** on any coordinate field to capture your real mouse position.
+3. Tick the games you want to play and set their **order**.
+4. Click **Save Configuration**.
+5. Click **Start Bot** — the bot launches `Routine.py` in the background.
+6. Switch to the RollerCoin browser tab and enjoy. Use **Stop Bot** to halt.
+
+After saving once, you can also start the bot directly:
+
+```bash
+python Routine.py
+```
+
+### Supported standalone scripts
+
+| Script | What it does |
+|--------|--------------|
+| `main.py` | Configuration GUI (recommended entry point) |
+| `Routine.py` | Runs games/elections using the saved config |
+| `aprivdeio.py` | Video tagger / playback for videos |
+| `autoclick.py` | Configurable autoclicker (mouse, keyboard, sequences) |
+| `cerca_posizione.py` | Standalone position finder |
+
+## 🧭 Configuring positions (the "Find" workflow)
+
+1. Open RollerCoin in your browser at 100% zoom and login.
+2. Open the **Choose Game** page so all game tiles are visible.
+3. In the GUI click **Find** next to a game field, hover exactly over the game
+   tile, confirm. Repeat for the **Start** button of that game.
+4. Also set **Gain Power** to the "Claim power" button that appears after a
+   match.
+5. **Save Configuration**.
+
+Typical defaults for 1920×1080 (from the saved `game_config.json`):
+
+| Game | Game position | Start button | Difficulty |
+|------|--------------|-------------|-----------|
+| CoinClick | 842, 226 | 903, 442 | — |
+| CoinFlip (Memory) | 939, 945 | 996, 505 | 1–3 |
+| 2048 | 1235, 784 | 876, 493 | — |
+| Hamster Climber | 834, 650 | 906, 510 | — |
+| CoinMatch | 586, 499 | 990, 450 | — |
+| Flappy Rocket | 1185, 642 | 906, 497 | — |
+| Coin Fisher | 578, 639 | 894, 488 | — |
+| Token Blaster | 1198, 485 | 889, 494 | — |
+
+> 📌 Scroll values are in `scroll_down` / `BANNER_EVENT` settings — needed only
+> if a promotional banner shifts the games grid.
 
 ## 🏗️ Architecture
 
 ```
 Auto-play-Rollercoin-game/
-├── main.py                 # GUI Configuration Interface
-├── Routine.py             # Main Automation Engine
-├── Routine_config.py      # Position Configurations
-├── functions.py           # Core Game Functions
-├── CoinClick.py          # CoinClick Game Bot
-├── CoinFlip.py           # CoinFlip Game Bot
-├── 2048Coins.py          # 2048 Coins Game Bot
-├── HamsterClimber.py     # Hamster Climber Game Bot
-├── CoinMatch.py          # CoinMatch Game Bot
-├── requirements.txt      # Dependencies
-└── docs/                 # Documentation
-    └── ROLLERCOIN_BOT_DOCUMENTATION.md
+├── main.py                     # Configuration GUI (dark theme, dynamic) + --routine mode
+├── Routine.py                  # Entry point → runs the orchestrator (source mode)
+├── build_exe.py                # Builds the Windows .exe (PyInstaller)
+├── game_engine/
+│   ├── base.py                 # BaseGame abstract class for all bots
+│   ├── registry.py             # Auto-discovery of game modules
+│   ├── orchestrator.py         # Rotation logic (games & elections)
+│   ├── utils.py                # Click, screenshot, game-ready helpers
+│   └── games/                  # One module per mini-game
+├── functions.py                # Backward-compat re-exports (legacy)
+├── Installazione/              # Alternative pip installer (setup helper)
+├── requirements.txt            # Runtime Python dependencies
+├── dev-requirements.txt        # Build-only deps (pyinstaller)
+├── game_config.json*           # Saved settings (generated, git-ignored)
+├── Routine_config.py*          # Generated Python config (git-ignored)
+├── aprivdeio.py                # Video tagger / player (bonus)
+├── autoclick.py                # Autoclicker (bonus)
+├── Elections.py               # Elections voting bot
+├── PATCH_NOTES.md              # Changelog
+├── TUTORIAL.md                 # Step-by-step install & usage guide
+└── README.md                   # This file
 ```
 
-## 🎮 Usage
+`*` generated by the GUI (next to the .exe in packaged builds), git-ignored,
+safe to delete anytime.
 
-### Basic Operation
+## 📖 Install & usage tutorial
 
-1. **Start the GUI**
-   ```bash
-   python main.py
-   ```
+New to the project? Read the step-by-step **[TUTORIAL](TUTORIAL.md)** — in 5
+minutes the bot runs. The tutorial covers both **.exe users** (no Python,
+double-click and go) and **source users** (install Python, create a venv,
+*how do I run this script?*).
 
-2. **Configure Games**
-   - Select games to automate
-   - Set position coordinates
-   - Adjust timing parameters
+## 🏭 Building your own .exe
 
-3. **Run Automation**
-   ```bash
-   python Routine.py
-   ```
-
-### Advanced Features
-
-- **Multi-Game Rotation**: Automatically cycle through games
-- **Performance Monitoring**: Track win rates and efficiency
-- **Error Recovery**: Automatic restart on failures
-- **Custom Strategies**: Modify algorithms for specific games
-
-## 📊 Performance Metrics
-
-| Game | Win Rate | Avg. Duration | Hash Power/Hour |
-|------|----------|---------------|-----------------|
-| CoinClick | 95% | 30s | High |
-| CoinFlip | 80% | 45s | Medium |
-| 2048 Coins | 85% | 120s | High |
-| Hamster Climber | 90% | 60s | Medium |
-| CoinMatch | 88% | 90s | High |
-
-## 🛠️ Technical Details
-
-### Dependencies
-
-```txt
-pyautogui==0.9.54    # Screen automation
-keyboard==0.13.5     # Keyboard input handling
-Pillow==10.2.0       # Image processing
-```
-
-### System Requirements
-
-- **CPU**: 2+ cores recommended
-- **RAM**: 4GB minimum, 8GB recommended
-- **Display**: 1920x1080 primary monitor
-- **Network**: Stable internet connection
+1. `pip install -r dev-requirements.txt`
+2. `python build_exe.py`
+3. Grab `dist/RollerCoinBot.exe` and distribute it — add it to a GitHub
+   [Release](https://github.com/HunterStile/Auto-play-Rollercoin-game/releases), for example.
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+| Problem | Fix |
+|---------|-----|
+| `ModuleNotFoundError: No module named 'pyautogui'` | `pip install -r requirements.txt` inside the **venv** you activate before every run |
+| Bot clicks but nothing happens | Browser zoom must be exactly **100%**, window **1920×1080**, game page visible |
+| `Bot Non Cliche` / wrong spots | Re-run **Find** for each position. RollerCoin layout changes can shift the grid |
+| Bot doesn't find a game | Check browser page loaded fully, adjust `scroll_down` value |
+| `pyautogui` fails with no display | PyAutoGUI is Windows/mac-only — the bot needs a physical screen |
+| GUI says **no valid games configured** | Enable at least one game in the "Game Order" section and save |
 
-| Issue | Solution |
-|-------|----------|
-| **Position Errors** | Recalibrate screen coordinates |
-| **Game Not Detected** | Check browser zoom level (100%) |
-| **Slow Performance** | Adjust timing delays |
-| **Click Failures** | Verify PyAutoGUI permissions |
+## 🔧 Advanced
 
-### Debug Mode
+- **Elections** — in the "Elezioni" section you can enable elections mode.
+  Note: when enabled, the bot runs *only* elections in a loop (games are
+  skipped).
+- **Add a new game** — create `game_engine/games/<name>.py` with a
+  `@register_game` class extending `BaseGame`, then restart the GUI. It shows
+  up automatically.
 
-Enable debug logging:
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG)
-```
+## ⚖️ Legal & disclaimers
 
-### Support
-
-- **Documentation**: See `docs/ROLLERCOIN_BOT_DOCUMENTATION.md`
-- **Issues**: Report bugs via GitHub Issues
-- **Updates**: Check for new versions regularly
-
-## ⚖️ Legal Notice
-
-> **Important**: This bot is for educational purposes only. Please review RollerCoin's Terms of Service before use. Use responsibly and at your own risk.
+Use this project **only for educational purposes**. It engages in real screen
+automation, respect RollerCoin's Terms of Service, don't break their fair-use
+rules, and remember: any use is at your own full responsibility.
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/xxx`)
 3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+4. Submit a Pull Request — describe the game / change.
+
+Issues: [https://github.com/HunterStile/Auto-play-Rollercoin-game/issues](https://github.com/HunterStile/Auto-play-Rollercoin-game/issues)
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **RollerCoin** - For the entertaining mini-games
-- **PyAutoGUI** - For screen automation capabilities
-- **Python Community** - For excellent libraries and support
+MIT © HunterStile — see [LICENSE](LICENSE).
 
 ---
 
@@ -230,6 +276,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **⚡ Maximize your RollerCoin earnings with intelligent automation ⚡**
 
-[Documentation](docs/ROLLERCOIN_BOT_DOCUMENTATION.md) • [Issues](https://github.com/Hunterstile/Auto-play-Rollercoin-game/issues) • [Releases](https://github.com/Hunterstile/Auto-play-Rollercoin-game/releases)
+[Tutorial](TUTORIAL.md) • [Issues](https://github.com/HunterStile/Auto-play-Rollercoin-game/issues) • [Releases](https://github.com/HunterStile/Auto-play-Rollercoin-game/releases)
 
 </div>
