@@ -2,6 +2,7 @@ import json
 import os
 import secrets
 import subprocess
+import time
 
 ESTENSIONI_VIDEO = (".mp4", ".avi", ".mkv", ".mov", ".wmv")
 TAG_FILE = "video_tags.json"
@@ -158,7 +159,7 @@ def gestisci_comando_riproduzione(cmd, video_corrente, tagged_nel_turno, tags_db
     return "continua", tagged_nel_turno
 
 
-def riproduzione_con_tag_obbligatorio(tutti_video, video_riprodotti, tags_db, tags_path):
+def riproduzione_con_tag_obbligatorio(tutti_video, video_riprodotti, tags_db, tags_path, tempo_guardato_db, tempo_guardato_path):
     """Riproduce video in ciclo: lo skip e' consentito solo dopo aver aggiunto almeno un tag."""
     print("\nModalita riproduzione attiva. Premi CTRL+C per tornare al menu.")
 
@@ -166,6 +167,7 @@ def riproduzione_con_tag_obbligatorio(tutti_video, video_riprodotti, tags_db, ta
         while True:
             video_corrente = prossimo_video_casuale(tutti_video, video_riprodotti)
             tagged_nel_turno = False
+            inizio_video = time.monotonic()
 
             print(f"\nIn riproduzione: {os.path.basename(video_corrente)}")
             print(f"Percorso: {video_corrente}")
@@ -180,8 +182,14 @@ def riproduzione_con_tag_obbligatorio(tutti_video, video_riprodotti, tags_db, ta
                     cmd, video_corrente, tagged_nel_turno, tags_db, tags_path
                 )
                 if azione == "prossimo_video":
+                    secondi_guardati = max(0, int(time.monotonic() - inizio_video))
+                    aggiungi_tempo_guardato(tempo_guardato_db, video_corrente, secondi_guardati)
+                    salva_tempo_guardato(tempo_guardato_path, tempo_guardato_db)
                     break
                 if azione == "torna_menu":
+                    secondi_guardati = max(0, int(time.monotonic() - inizio_video))
+                    aggiungi_tempo_guardato(tempo_guardato_db, video_corrente, secondi_guardati)
+                    salva_tempo_guardato(tempo_guardato_path, tempo_guardato_db)
                     return
 
     except KeyboardInterrupt:
@@ -197,7 +205,7 @@ def trova_video_non_taggati(tutti_video, tags_db):
     return non_taggati
 
 
-def riproduzione_discovery(tutti_video, tags_db, tags_path):
+def riproduzione_discovery(tutti_video, tags_db, tags_path, tempo_guardato_db, tempo_guardato_path):
     """Riproduce casualmente solo video senza tag finche non vengono classificati."""
     print("\nModalita Discovery attiva. Solo video senza tag. Premi CTRL+C per tornare al menu.")
 
@@ -211,6 +219,7 @@ def riproduzione_discovery(tutti_video, tags_db, tags_path):
 
             video_corrente = secrets.choice(candidati)
             tagged_nel_turno = False
+            inizio_video = time.monotonic()
 
             print(f"\nIn discovery: {os.path.basename(video_corrente)}")
             print(f"Rimasti senza tag: {len(candidati)}")
@@ -226,8 +235,14 @@ def riproduzione_discovery(tutti_video, tags_db, tags_path):
                     cmd, video_corrente, tagged_nel_turno, tags_db, tags_path
                 )
                 if azione == "prossimo_video":
+                    secondi_guardati = max(0, int(time.monotonic() - inizio_video))
+                    aggiungi_tempo_guardato(tempo_guardato_db, video_corrente, secondi_guardati)
+                    salva_tempo_guardato(tempo_guardato_path, tempo_guardato_db)
                     break
                 if azione == "torna_menu":
+                    secondi_guardati = max(0, int(time.monotonic() - inizio_video))
+                    aggiungi_tempo_guardato(tempo_guardato_db, video_corrente, secondi_guardati)
+                    salva_tempo_guardato(tempo_guardato_path, tempo_guardato_db)
                     return
 
     except KeyboardInterrupt:
@@ -235,12 +250,17 @@ def riproduzione_discovery(tutti_video, tags_db, tags_path):
         termina_processo_video()
 
 
-def riproduci_lista_video(videos, tags_db, tags_path):
+def riproduci_lista_video(videos, tags_db, tags_path, tempo_guardato_db=None, tempo_guardato_path=None):
     """Riproduce in sequenza una lista di video gia' filtrata (es. risultati di ricerca per tag)."""
     print("\nRiproduzione risultati. Premi CTRL+C per tornare al menu.")
+    if tempo_guardato_db is None:
+        tempo_guardato_db = {}
+    if tempo_guardato_path is None:
+        tempo_guardato_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "video_watch_stats.json")
 
     try:
         for video_corrente in videos:
+            inizio_video = time.monotonic()
             print(f"\nIn riproduzione: {os.path.basename(video_corrente)}")
             print(f"Percorso: {video_corrente}")
             print(
@@ -257,9 +277,15 @@ def riproduci_lista_video(videos, tags_db, tags_path):
                     continue
 
                 if cmd == "s":
+                    secondi_guardati = max(0, int(time.monotonic() - inizio_video))
+                    aggiungi_tempo_guardato(tempo_guardato_db, video_corrente, secondi_guardati)
+                    salva_tempo_guardato(tempo_guardato_path, tempo_guardato_db)
                     break
 
                 if cmd == "x":
+                    secondi_guardati = max(0, int(time.monotonic() - inizio_video))
+                    aggiungi_tempo_guardato(tempo_guardato_db, video_corrente, secondi_guardati)
+                    salva_tempo_guardato(tempo_guardato_path, tempo_guardato_db)
                     termina_processo_video()
                     return
 
@@ -334,6 +360,74 @@ def mostra_tag_per_video(tutti_video, tags_db):
     print(f"Tag: {', '.join(tags) if tags else 'nessuno'}")
 
 
+def aggiungi_tempo_guardato(tempo_guardato_db, video_path, secondi):
+    """Aggiunge secondi guardati a un video."""
+    try:
+        secondi = int(secondi)
+    except (TypeError, ValueError):
+        return
+
+    if secondi < 0:
+        secondi = 0
+
+    tempo_guardato_db[video_path] = tempo_guardato_db.get(video_path, 0) + secondi
+
+
+def classifica_video_per_tempo(tempo_guardato_db):
+    """Restituisce una classifica decrescente di video per tempo guardato."""
+    return sorted(tempo_guardato_db.items(), key=lambda item: item[1], reverse=True)
+
+
+def carica_tempo_guardato(path_file):
+    if not os.path.exists(path_file):
+        return {}
+
+    try:
+        with open(path_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+    if not isinstance(data, dict):
+        return {}
+
+    risultato = {}
+    for video, secondi in data.items():
+        if isinstance(video, str):
+            try:
+                valore = int(secondi)
+            except (TypeError, ValueError):
+                continue
+            risultato[video] = max(0, valore)
+    return risultato
+
+
+def salva_tempo_guardato(path_file, tempo_guardato_db):
+    with open(path_file, "w", encoding="utf-8") as f:
+        json.dump(tempo_guardato_db, f, ensure_ascii=False, indent=2)
+
+
+def formatta_tempo(secondi):
+    minuti, secondi_rimanenti = divmod(int(secondi), 60)
+    ore, minuti = divmod(minuti, 60)
+    if ore:
+        return f"{ore}h {minuti}m {secondi_rimanenti}s"
+    if minuti:
+        return f"{minuti}m {secondi_rimanenti}s"
+    return f"{secondi_rimanenti}s"
+
+
+def mostra_classifica_video_per_tempo(tempo_guardato_db):
+    classifica = classifica_video_per_tempo(tempo_guardato_db)
+    if not classifica:
+        print("\nNessun dato di visione registrato.")
+        return
+
+    print("\n=== CLASSIFICA VIDEO PIU' GUARDATI ===")
+    for posizione, (video, secondi) in enumerate(classifica[:10], start=1):
+        print(f"{posizione}. {os.path.basename(video)} - {formatta_tempo(secondi)} ({secondi} s)")
+
+
 def conta_statistiche_tag(tags_db):
     """Conta l'utilizzo di ogni tag e restituisce statistiche."""
     conteggio_tag = {}
@@ -400,7 +494,9 @@ def menu_principale(cartella_video):
         return
 
     tags_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), TAG_FILE)
+    watch_stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "video_watch_stats.json")
     tags_db = carica_tags(tags_path)
+    tempo_guardato_db = carica_tempo_guardato(watch_stats_path)
     video_riprodotti = []
 
     while True:
@@ -412,14 +508,22 @@ def menu_principale(cartella_video):
         print("5) Mostra tag di un video")
         print("6) Statistiche tag (percentuali e grafico)")
         print("7) Aggiorna scansione cartella video")
+        print("8) Classifica video per tempo guardato")
         print("0) Esci")
 
         scelta = input("Scelta: ").strip()
 
         if scelta == "1":
-            riproduzione_con_tag_obbligatorio(tutti_video, video_riprodotti, tags_db, tags_path)
+            riproduzione_con_tag_obbligatorio(
+                tutti_video,
+                video_riprodotti,
+                tags_db,
+                tags_path,
+                tempo_guardato_db,
+                watch_stats_path,
+            )
         elif scelta == "2":
-            riproduzione_discovery(tutti_video, tags_db, tags_path)
+            riproduzione_discovery(tutti_video, tags_db, tags_path, tempo_guardato_db, watch_stats_path)
         elif scelta == "3":
             video = scegli_video(tutti_video)
             if video and aggiungi_tag_a_video(video, tags_db):
@@ -433,6 +537,8 @@ def menu_principale(cartella_video):
         elif scelta == "7":
             tutti_video = trova_video(cartella_video)
             print(f"Scansione aggiornata. Trovati {len(tutti_video)} video.")
+        elif scelta == "8":
+            mostra_classifica_video_per_tempo(tempo_guardato_db)
         elif scelta == "0":
             print("Uscita dal programma.")
             termina_processo_video()
