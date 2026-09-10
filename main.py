@@ -68,7 +68,8 @@ ACCENT_BTN = "Accent.TButton"
 SECONDARY_BTN = "Secondary.TButton"
 DANGER_BTN = "Danger.TButton"
 
-IN_PROGRESS_GAMES = {"coinmatch", "flappyrocket", "tokenblaster"}
+IN_PROGRESS_GAMES = {"flappyrocket", "tokenblaster"}
+EXPERIMENTAL_GAMES = {"coinmatch": "livello 1 - sperimentale"}
 GAME_DISPLAY_ORDER = [
     "coinclick",
     "coinflip",
@@ -432,10 +433,14 @@ class GameConfigGUI:
             game_frame = ttk.Frame(order_frame)
             game_frame.pack(fill=tk.X, pady=2)
 
+            label = game.display_name
+            if gid in IN_PROGRESS_GAMES:
+                label += " (in lavorazione)"
+            elif gid in EXPERIMENTAL_GAMES:
+                label += f" ({EXPERIMENTAL_GAMES[gid]})"
             checkbutton = ttk.Checkbutton(
                 game_frame,
-                text=(f"{game.display_name} (in lavorazione)"
-                      if gid in IN_PROGRESS_GAMES else game.display_name),
+                text=label,
                 variable=self.game_vars[gid],
                 state="disabled" if gid in IN_PROGRESS_GAMES else "normal",
             )

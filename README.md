@@ -54,12 +54,29 @@ game bots, so adding a new mini-game is as easy as dropping a new module in the
 | 3 | 🔢 **2048 Coins** | Puzzle | Arrow-key tile merging pattern | ✅ |
 | 4 | 🐹 **Hamster Climber** | Reaction | Green-bar detection + spacebar jumps | ✅ |
 | 5 | 🪝 **Coin Fisher** | Aiming | Adaptive board detection, individual coin centers and trajectory scoring | ✅ |
-| 6 | 🎮 **CoinMatch** | Match-3 | 8x8 grid scan + AI move evaluation | 🚧 In lavorazione |
+| 6 | 🎮 **CoinMatch** | Match-3 | Adaptive 8x8 detection, stable-board checks and scored swaps | 🧪 Level 1 experimental |
 | 7 | 🚀 **Flappy Rocket** | Flappy | Rocket tracking + obstacle gap detection | 🚧 In lavorazione |
 | 8 | 💥 **Token Blaster** | Shooter | Auto-fire + red enemy targeting | 🚧 In lavorazione |
 
 All games are registered at startup by `game_engine/games/__init__.py` and
 appear automatically in the GUI — no hardcoded game lists.
+
+Coin Match level 1 is selectable in the GUI as **sperimentale**. It recognizes
+BTC, DOGE, ETH and DASH and locates the grid automatically. Keep all 64 coins
+visible. The old `grid_x`, `grid_y` and `cell_size` settings are no longer used.
+An optional `scan_region=(left, top, width, height)` passed to `CoinMatchBot`
+selects a board by its center if multiple boards are visible.
+
+To inspect the visible board without clicking, run `python test_coinmatch.py`.
+To play one already started round, run `python test_coinmatch.py --play` and
+focus the game during the four-second countdown. Move the mouse to the top-left
+corner to stop through PyAutoGUI failsafe. The bot waits for stable readings and
+avoids repeating an unconfirmed swap on the same board. It stops after eight
+seconds without a playable board or after 75 seconds; it does not yet recognize
+the final result or certify a win. Other coin types and levels need more samples.
+Validation covers screenshot replays and mocked input; live drag behavior still
+needs verification. Source changes require rebuilding any existing `.exe`.
+
 
 ## ✨ Key Features
 

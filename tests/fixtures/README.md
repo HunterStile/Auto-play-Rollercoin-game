@@ -17,3 +17,16 @@ a search hint in `(left, top, width, height)` screen coordinates. A missing,
 clipped or ambiguous board suppresses shots. Screenshot/mouse scale mismatches
 stop the run. Move the mouse to the top-left corner to trigger PyAutoGUI failsafe.
 The end-panel color check is heuristic; it does not certify a win or level 10.
+
+
+`coinmatch_level1.png` is the game-only screenshot supplied on 2026-09-10.
+Its 64 cells are transcribed independently in `tests/test_coinmatch.py`.
+Tests cover 70%, 100%, 120% scale, translations, missing/unknown/moving coins,
+ambiguous boards, legal swaps, unique match counting and mocked input feedback.
+
+```powershell
+python -m unittest discover -s tests -v
+python test_coinmatch.py --image tests/fixtures/coinmatch_level1.png
+```
+
+The second command only prints the detected board and suggested swap; no clicks.

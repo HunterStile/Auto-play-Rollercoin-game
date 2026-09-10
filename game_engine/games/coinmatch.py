@@ -1,239 +1,172 @@
-"""
-CoinMatch Game Bot v2.
-
-Match-3 game on 8x8 grid with AI move evaluation.
-Uses full-cell color sampling with calibrated coin colors.
-"""
+"""Coin Match level one: adaptive board reading and verified match-3 swaps."""
+import time
 
 import pyautogui
-import numpy as np
-import time
-from typing import List, Tuple, Optional
 
 from game_engine.base import BaseGame
+from game_engine.coinmatch_vision import detect_board
 from game_engine.registry import register_game
 
-# ── Coin RGB colors (calibrated from real game) ──────────────────────
-# Format: (R, G, B)
-COIN_COLORS_RGB = {
-    'GOLD':   (190, 160, 55),   # Yellow/Gold coin
-    'ORANGE': (230, 148, 60),   # Orange coin
-    'BLUE':   (84, 119, 215),   # Medium blue coin
-    'TEAL':   (0, 100, 163),    # Dark teal/cyan coin
-}
 
-COLOR_TOLERANCE = 45  # Per-channel tolerance
+def matched_cells(grid):
+    """Return unique cells in horizontal/vertical runs of at least three."""
+    found = set()
+    for vertical in (False, True):
+        for line in range(8):
+            run = []
+            previous = None
+            for index in range(9):
+                pos = (index, line) if vertical else (line, index)
+                coin = grid[pos[0]][pos[1]] if index < 8 else None
+                if coin is None or coin != previous:
+                    if len(run) >= 3:
+                        found.update(run)
+                    run = []
+                if coin is not None:
+                    run.append(pos)
+                previous = coin
+    return found
 
 
 @register_game
 class CoinMatchBot(BaseGame):
     game_id = 'coinmatch'
     display_name = 'CoinMatch'
-    description = 'Match-3 puzzle with AI move evaluation on 8x8 grid'
+    description = 'Adaptive 8x8 detection and match-3 swaps (level 1)'
     config_keys = {'position': 'COINMATCH_POSITION', 'start_position': 'COINMATCH_START'}
 
     def __init__(self, config=None):
         super().__init__(config)
-        self.grid_x = config.get('grid_x', 600) if config else 600
-        self.grid_y = config.get('grid_y', 250) if config else 250
-        self.cell_size = config.get('cell_size', 50) if config else 50
         self.grid_size = 8
-        self.game_duration = 60  # seconds
-        self.sample_points = [
-            (0.5, 0.5),   # center
-            (0.25, 0.25), # top-left
-            (0.75, 0.25), # top-right
-            (0.25, 0.75), # bottom-left
-            (0.75, 0.75), # bottom-right
-        ]
+        self.game_duration = self.config.get('game_duration', 75)
+        self.search_region = self.config.get('scan_region')
+        self.board = None
+        self._previous = None
+        self._stable_since = None
+        self._pending = None
+        self._blocked = set()
+        self._blocked_signature = None
+        self._ready_move = None
 
-    # ── Color detection ────────────────────────────────────────────────
+    def _scan_grid(self):
+        self.board = detect_board(pyautogui.screenshot(), self.search_region)
+        return self.board.grid if self.board else None
 
-    @staticmethod
-    def _classify_color(r, g, b):
-        """Classify an RGB pixel into a coin type."""
-        best_type = None
-        best_dist = float('inf')
-        for coin_type, (tr, tg, tb) in COIN_COLORS_RGB.items():
-            dist = abs(r - tr) + abs(g - tg) + abs(b - tb)
-            if dist < best_dist:
-                best_dist = dist
-                best_type = coin_type
-        if best_dist <= COLOR_TOLERANCE * 3:
-            return best_type
-        return None
-
-    def _get_cell_coin_type(self, screenshot, col, row):
-        """
-        Sample multiple points in a cell and return majority-vote coin type.
-        screenshot: numpy array (H, W, 3) of the game area.
-        """
-        h, w = screenshot.shape[:2]
-        votes = []
-        for fx, fy in self.sample_points:
-            px = int(col * self.cell_size + fx * self.cell_size)
-            py = int(row * self.cell_size + fy * self.cell_size)
-            if 0 <= px < w and 0 <= py < h:
-                r, g, b = screenshot[py, px]
-                coin = self._classify_color(int(r), int(g), int(b))
-                if coin:
-                    votes.append(coin)
-
-        if not votes:
-            return None
-
-        # Majority vote
-        from collections import Counter
-        return Counter(votes).most_common(1)[0][0]
-
-    # ── Grid ───────────────────────────────────────────────────────────
-
-    def _grid_pos(self, row: int, col: int) -> Tuple[int, int]:
-        """Get screen position for a grid cell center."""
-        return (
-            self.grid_x + col * self.cell_size + self.cell_size // 2,
-            self.grid_y + row * self.cell_size + self.cell_size // 2,
-        )
-
-    def _scan_grid(self) -> List[List[Optional[str]]]:
-        """Screenshot entire grid area and classify all cells."""
-        region = (self.grid_x, self.grid_y,
-                  self.cell_size * self.grid_size,
-                  self.cell_size * self.grid_size)
-
-        try:
-            pic = pyautogui.screenshot(region=region)
-            arr = np.array(pic)
-        except Exception as e:
-            print(f"  Grid scan error: {e}")
-            return [[None] * self.grid_size for _ in range(self.grid_size)]
-
-        grid = [[None] * self.grid_size for _ in range(self.grid_size)]
-        for row in range(self.grid_size):
-            for col in range(self.grid_size):
-                grid[row][col] = self._get_cell_coin_type(arr, col, row)
-        return grid
-
-    # ── Move Evaluation ────────────────────────────────────────────────
-
-    def _evaluate_move(self, grid, r1, c1, r2, c2) -> Tuple[int, list, str, str]:
-        """Simulate a swap and return the score it would produce."""
-        if not (0 <= r1 < self.grid_size and 0 <= c1 < self.grid_size and
-                0 <= r2 < self.grid_size and 0 <= c2 < self.grid_size):
+    def _evaluate_move(self, grid, r1, c1, r2, c2):
+        if (any(not 0 <= p < 8 for p in (r1, c1, r2, c2)) or
+                abs(r1-r2)+abs(c1-c2) != 1):
             return 0, [], '', ''
+        a, b = grid[r1][c1], grid[r2][c2]
+        if a is None or b is None or a == b or matched_cells(grid):
+            return 0, [], str(a), str(b)
+        swapped = [list(row) for row in grid]
+        swapped[r1][c1], swapped[r2][c2] = b, a
+        matches = matched_cells(swapped)
+        if not matches.intersection({(r1, c1), (r2, c2)}):
+            return 0, [], str(a), str(b)
+        return len(matches), sorted(matches), str(a), str(b)
 
-        new_grid = [row[:] for row in grid]
-        coin1, coin2 = new_grid[r1][c1], new_grid[r2][c2]
-        new_grid[r1][c1], new_grid[r2][c2] = coin2, coin1
+    def _best_move(self, grid, excluded=()):
+        if grid is None or any(c is None for row in grid for c in row) or matched_cells(grid):
+            return None
+        best_score, best = 0, None
+        for row in range(8):
+            for col in range(8):
+                for dr, dc in ((0, 1), (1, 0)):
+                    move = (row, col, row+dr, col+dc)
+                    if move in excluded:
+                        continue
+                    score = self._evaluate_move(grid, *move)[0]
+                    if score > best_score:
+                        best_score, best = score, move
+        return best
 
-        score = 0
-        matches = []
-
-        # Horizontal matches
-        for row in range(self.grid_size):
-            count = 1
-            current = None
-            for col in range(self.grid_size):
-                if new_grid[row][col] == current and current is not None:
-                    count += 1
-                else:
-                    if count >= 3:
-                        score += count
-                        matches.append(f"H-{count}x{current}")
-                    count = 1
-                    current = new_grid[row][col]
-            if count >= 3:
-                score += count
-                matches.append(f"H-{count}x{current}")
-
-        # Vertical matches
-        for col in range(self.grid_size):
-            count = 1
-            current = None
-            for row in range(self.grid_size):
-                if new_grid[row][col] == current and current is not None:
-                    count += 1
-                else:
-                    if count >= 3:
-                        score += count
-                        matches.append(f"V-{count}x{current}")
-                    count = 1
-                    current = new_grid[row][col]
-            if count >= 3:
-                score += count
-                matches.append(f"V-{count}x{current}")
-
-        return score, matches, str(coin1), str(coin2)
-
-    def _find_best_move(self) -> Optional[Tuple[int, int, int, int]]:
-        """Find the best move by evaluating all possible swaps."""
+    def _find_best_move(self):
+        """Only authorize input after repeated stable reads and swap feedback."""
+        self._ready_move = None
         grid = self._scan_grid()
-        best_score = 0
-        best_move = None
+        now = time.monotonic()
+        signature = self.board.signature if self.board else None
+        if signature is None or matched_cells(grid):
+            self._previous = self._stable_since = None
+            return None
+        if signature != self._previous:
+            self._previous, self._stable_since = signature, now
+            return None
+        if now-self._stable_since < .3:
+            return None
+        if self._pending:
+            before, move, sent = self._pending
+            if now-sent < .8:
+                return None
+            if signature == before:
+                if now-sent < 2.0:
+                    return None
+                self._blocked.add(move)
+                print('Coin Match: swap unconfirmed; trying a different move.')
+            else:
+                print('Coin Match: board changed after swap.')
+            self._pending = None
+        if signature != self._blocked_signature:
+            self._blocked.clear()
+            self._blocked_signature = signature
+        move = self._best_move(grid, self._blocked)
+        self._ready_move = move
+        return move
 
-        # Count recognized cells
-        recognized = sum(1 for row in grid for c in row if c is not None)
-        total = self.grid_size * self.grid_size
-        print(f"  Grid: {recognized}/{total} recognized")
+    def _grid_pos(self, row, col):
+        return int(self.board.xs[col]), int(self.board.ys[row])
 
-        for row in range(self.grid_size):
-            for col in range(self.grid_size):
-                # Horizontal swap
-                if col < self.grid_size - 1:
-                    score, _, _, _ = self._evaluate_move(grid, row, col, row, col + 1)
-                    if score > best_score:
-                        best_score = score
-                        best_move = (row, col, row, col + 1)
-
-                # Vertical swap
-                if row < self.grid_size - 1:
-                    score, _, _, _ = self._evaluate_move(grid, row, col, row + 1, col)
-                    if score > best_score:
-                        best_score = score
-                        best_move = (row, col, row + 1, col)
-
-        if best_move:
-            r1, c1, r2, c2 = best_move
-            coin1 = grid[r1][c1] if grid[r1][c1] else '?'
-            coin2 = grid[r2][c2] if grid[r2][c2] else '?'
-            print(f"  Best: ({r1},{c1}) {coin1} ↔ ({r2},{c2}) {coin2}  score={best_score}")
-        return best_move if best_score > 0 else None
-
-    # ── Actions ────────────────────────────────────────────────────────
-
-    def _make_move(self, r1: int, c1: int, r2: int, c2: int):
-        """Execute a swap on screen."""
-        x1, y1 = self._grid_pos(r1, c1)
-        x2, y2 = self._grid_pos(r2, c2)
-
-        pyautogui.moveTo(x1, y1)
-        pyautogui.mouseDown()
-        time.sleep(0.15)
-        pyautogui.moveTo(x2, y2, duration=0.15)
-        pyautogui.mouseUp()
-        time.sleep(0.4)
-
-    # ── Main Loop ──────────────────────────────────────────────────────
-
-    def play(self) -> bool:
-        """Play one round of CoinMatch."""
-        print("START CoinMatch v2")
-        start_time = time.time()
-
+    def _make_move(self, r1, c1, r2, c2):
+        move = (r1, c1, r2, c2)
+        if self.board is None or self._ready_move != move:
+            return False
+        self._ready_move = None
+        sw, sh = pyautogui.size()
+        if self.board.frame_size != (sw, sh):
+            return False
+        if self._evaluate_move(self.board.grid, *move)[0] == 0:
+            return False
+        first, second = self._grid_pos(r1, c1), self._grid_pos(r2, c2)
+        if not all(1 < x < sw-2 and 1 < y < sh-2 for x, y in (first, second)):
+            return False
+        pyautogui.moveTo(*first)
         try:
-            while time.time() - start_time < self.game_duration:
+            pyautogui.mouseDown()
+            time.sleep(.1)
+            pyautogui.moveTo(*second, duration=.18)
+        finally:
+            pyautogui.mouseUp()
+        self._pending = (self.board.signature, move, time.monotonic())
+        self._previous = self._stable_since = None
+        return True
+
+    def play(self):
+        print('START Coin Match: adaptive level-1 detection')
+        self.board = None
+        self._previous = self._stable_since = self._pending = None
+        self._blocked.clear()
+        self._blocked_signature = self._ready_move = None
+        start = time.monotonic()
+        last_available = start
+        try:
+            while time.monotonic()-start < self.game_duration:
                 move = self._find_best_move()
-                if move is None:
-                    print("  No moves available, waiting...")
-                    time.sleep(1)
-                    continue
-
-                r1, c1, r2, c2 = move
-                self._make_move(r1, c1, r2, c2)
-                time.sleep(1.2)
-
-            print("END CoinMatch (time's up)")
-            return True
-        except Exception as e:
-            print(f"  Error in CoinMatch: {e}")
+                if move:
+                    if not self._make_move(*move):
+                        print('Coin Match: screen coordinates unavailable; stopped.')
+                        return False
+                    last_available = time.monotonic()
+                elif self._pending:
+                    last_available = time.monotonic()
+                if time.monotonic()-last_available > 8:
+                    print('Coin Match: no playable board (possibly round ended); result unverified.')
+                    return False
+                time.sleep(.12)
+            print('END Coin Match: time limit reached; result unverified.')
+            return False
+        except pyautogui.FailSafeException:
+            raise
+        except Exception as exc:
+            print(f'Coin Match error: {exc}')
             return False
