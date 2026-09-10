@@ -53,7 +53,7 @@ game bots, so adding a new mini-game is as easy as dropping a new module in the
 | 2 | 🃏 **CoinFlip** (Memory) | Memory | Card color memorization, 3 difficulty levels | ✅ |
 | 3 | 🔢 **2048 Coins** | Puzzle | Arrow-key tile merging pattern | ✅ |
 | 4 | 🐹 **Hamster Climber** | Reaction | Green-bar detection + spacebar jumps | ✅ |
-| 5 | 🪝 **Coin Fisher** | Aiming | Coin clustering, shoots densest group | ✅ |
+| 5 | 🪝 **Coin Fisher** | Aiming | Adaptive board detection, individual coin centers and trajectory scoring | ✅ |
 | 6 | 🎮 **CoinMatch** | Match-3 | 8x8 grid scan + AI move evaluation | 🚧 In lavorazione |
 | 7 | 🚀 **Flappy Rocket** | Flappy | Rocket tracking + obstacle gap detection | 🚧 In lavorazione |
 | 8 | 💥 **Token Blaster** | Shooter | Auto-fire + red enemy targeting | 🚧 In lavorazione |

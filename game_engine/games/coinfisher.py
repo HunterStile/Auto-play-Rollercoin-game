@@ -1,240 +1,193 @@
-"""
-Coin Fisher Game Bot v2.
-
-Scans for coins using validated color ranges, groups them into clusters,
-and shoots at the center of the densest cluster.
-
-Strategy:
-1. Scan all pixels for coins (collect all positions)
-2. Group nearby coins into clusters (DBSCAN-like)
-3. Pick the cluster with the MOST coins
-4. Click at the cluster centroid
-"""
-
-import pyautogui
+"""Coin Fisher: locate the water, detect individual coins, aim inside the board."""
 import time
-import math
-from typing import Tuple, List, Optional
+
+import numpy as np
+import pyautogui
+from PIL import Image, ImageFilter
 
 from game_engine.base import BaseGame
 from game_engine.registry import register_game
 
-# ── Coin color definitions (validated by user) ────────────────────────
-# Each entry: (name, condition_fn) where condition_fn(r, g, b) -> bool
 
-def _is_btc(r, g, b):
-    return r > 240 and 130 < g < 170 and b < 50
-
-def _is_doge(r, g, b):
-    return r > 220 and g > 190 and 80 < b < 120
-
-def _is_eth(r, g, b):
-    return 110 < r < 150 and 130 < g < 180 and b > 240
-
-def _is_ltc(r, g, b):
-    return r > 210 and g > 210 and b > 210 and abs(r - b) < 5
-
-def _is_dash(r, g, b):
-    return r < 50 and 100 < g < 150 and 190 < b < 230
-
-COIN_CHECKS = [_is_btc, _is_doge, _is_eth, _is_ltc, _is_dash]
-
-# End-screen detection
-END_SCREEN_COLOR = (3, 225, 228)
-
-# Default game region (user-validated)
-DEFAULT_REGION = (64, 117, 1475, 896)
-
-# Cluster distance: coins within this many pixels are grouped together
-CLUSTER_DISTANCE = 80
+def _components(mask):
+    """Yield bounding boxes and areas of 8-connected foreground components."""
+    mask = mask.copy()
+    height, width = mask.shape
+    for sy, sx in zip(*np.nonzero(mask)):
+        if not mask[sy, sx]:
+            continue
+        mask[sy, sx] = False
+        stack = [(int(sx), int(sy))]
+        left = right = int(sx)
+        top = bottom = int(sy)
+        area = 0
+        while stack:
+            x, y = stack.pop()
+            area += 1
+            left, right = min(left, x), max(right, x)
+            top, bottom = min(top, y), max(bottom, y)
+            for ny in range(max(0, y-1), min(height, y+2)):
+                for nx in range(max(0, x-1), min(width, x+2)):
+                    if mask[ny, nx]:
+                        mask[ny, nx] = False
+                        stack.append((nx, ny))
+        yield left, top, right-left+1, bottom-top+1, area
 
 
 @register_game
 class CoinFisherBot(BaseGame):
     game_id = 'coinfisher'
     display_name = 'Coin Fisher'
-    description = 'Fishing game: cluster detection, shoots densest coin groups'
+    description = 'Detects the board and individual coins; aims along coin groups'
 
     def __init__(self, config=None):
         super().__init__(config)
-        self.game_duration = 65  # seconds
-        self.click_cooldown = 1.0  # seconds between harpoon shots
-        self.scan_step = 6  # pixel step for scanning
-        self.region = config.get('scan_region', DEFAULT_REGION) if config else DEFAULT_REGION
+        self.game_duration = 65
+        self.click_cooldown = 1.0
+        # An optional search hint, never an unvalidated click rectangle.
+        self.search_region = self.config.get('scan_region')
+        self.region = None
+        self._frame_size = None
+        self._water_region = None
+        self._ended = False
 
-    # ── Coin detection ────────────────────────────────────────────────
+    def _is_end_screen(self, frame):
+        """Require a broad cyan panel inside the last verified board."""
+        if self._water_region is None:
+            return False
+        x, y, w, h = self._water_region
+        panel = np.asarray(frame.crop((x+w//4, y+h//4, x+3*w//4, y+3*h//4)),
+                           dtype=np.int16)
+        return bool((np.max(np.abs(panel-(3, 225, 228)), axis=2) <= 5).mean() > .65)
 
-    @staticmethod
-    def _is_coin(r: int, g: int, b: int) -> bool:
-        """Check if a pixel is any coin type."""
-        return any(check(r, g, b) for check in COIN_CHECKS)
+    def _locate_water(self, frame):
+        """Reject absent, ambiguous and screen-clipped boards."""
+        pixels = np.asarray(frame.convert('RGB'), dtype=np.int16)[::4, ::4]
+        r, g, b = pixels.transpose(2, 0, 1)
+        mask = (g > r+35) & (b > r+35) & (g > 65) & (b > 60)
+        candidates = []
+        for x, y, w, h, area in _components(mask):
+            if w < 60 or h < 40 or not 1.25 < w/h < 1.65 or area < .65*w*h:
+                continue
+            box = (x*4, y*4, w*4, h*4)
+            bx, by, bw, bh = box
+            if bx <= 0 or by <= 0 or bx+bw >= frame.width or by+bh >= frame.height:
+                continue
+            if self.search_region:
+                hx, hy, hw, hh = self.search_region
+                if not (hx <= bx+bw/2 < hx+hw and hy <= by+bh/2 < hy+hh):
+                    continue
+            candidates.append(box)
+        return candidates[0] if len(candidates) == 1 else None
 
-    def _scan_all_coins(self) -> List[Tuple[int, int]]:
-        """
-        Scan the entire game region for all coins.
-        Returns list of (x, y) absolute screen positions.
-        """
-        rx, ry, rw, rh = self.region
+    def _scan_all_coins(self):
+        """One center per coin, in coordinates of the captured screen."""
+        self.region = None
+        frame = pyautogui.screenshot().convert('RGB')
+        self._ended = self._is_end_screen(frame)
+        self._water_region = None
+        self._frame_size = frame.size
+        if self._ended:
+            return []
+        water = self._locate_water(frame)
+        if water is None:
+            return []
+        self._water_region = water
+        x, y, w, h = water
+        # Exclude score/time HUD and the launcher/seabed, at any supported zoom.
+        left, top = x+int(.015*w), y+int(.10*h)
+        right, bottom = x+w-int(.015*w), y+int(.88*h)
+        self.region = (left, top, right-left, bottom-top)
+        pixels = np.asarray(frame.crop((left, top, right, bottom)), dtype=np.int16)
+        r, g, b = pixels.transpose(2, 0, 1)
+        masks = [
+            (r > 220) & (g > 110) & (g < 195) & (b < 100),  # BTC
+            (r > 180) & (g > 155) & (b < 155) & (abs(r-g) < 65),  # DOGE
+            (r > 65) & (r < 180) & (g > 90) & (g < 205) & (b > 220),  # ETH
+            (r > 155) & (abs(r-g) < 12) & (abs(r-b) < 12),  # LTC
+            (r < 65) & (g > 90) & (g < 175) & (b > 160) & (b > g+35),  # DASH
+        ]
         coins = []
-
-        try:
-            pic = pyautogui.screenshot(region=self.region)
-            w, h = pic.size
-
-            for x in range(0, w, self.scan_step):
-                for y in range(0, h, self.scan_step):
-                    try:
-                        r, g, b = pic.getpixel((x, y))
-                        if self._is_coin(r, g, b):
-                            coins.append((rx + x, ry + y))
-                    except Exception:
-                        pass
-        except Exception as e:
-            print(f"  Scan error: {e}")
-
+        for mask in masks:
+            # Connect highlights on the same sprite without merging adjacent colors.
+            connected = np.asarray(Image.fromarray(mask.astype('uint8')*255)
+                                   .filter(ImageFilter.MaxFilter(3))) > 0
+            for cx, cy, cw, ch, area in _components(connected):
+                if not (.018*w < cw < .065*w and .022*w < ch < .07*w):
+                    continue
+                if not (.55 < cw/ch < 1.4 and area > .20*cw*ch):
+                    continue
+                if cx == 0 or cy == 0 or cx+cw >= right-left or cy+ch >= bottom-top:
+                    continue
+                point = (left+cx+cw//2, top+cy+ch//2)
+                if all(np.hypot(point[0]-px, point[1]-py) > .018*w for px, py in coins):
+                    coins.append(point)
         return coins
 
-    # ── Clustering ────────────────────────────────────────────────────
-
-    def _cluster_coins(self, coins: List[Tuple[int, int]]) -> List[List[Tuple[int, int]]]:
-        """
-        Group nearby coins into clusters using distance-based approach.
-        Returns list of clusters, each cluster is a list of (x, y) positions.
-        """
-        if not coins:
-            return []
-
-        # Simple distance-based clustering
-        clusters = []
-        remaining = coins.copy()
-
-        while remaining:
-            # Start a new cluster with the first remaining coin
-            cluster = [remaining.pop(0)]
-            changed = True
-
-            # Expand: add any coin within CLUSTER_DISTANCE of any cluster member
-            while changed:
-                changed = False
-                i = 0
-                while i < len(remaining):
-                    coin = remaining[i]
-                    # Check if this coin is close to any coin in the cluster
-                    if any(self._distance(coin, c) <= CLUSTER_DISTANCE for c in cluster):
-                        cluster.append(remaining.pop(i))
-                        changed = True
-                    else:
-                        i += 1
-
-            clusters.append(cluster)
-
-        return clusters
-
-    @staticmethod
-    def _distance(a: Tuple[int, int], b: Tuple[int, int]) -> float:
-        return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
-
-    @staticmethod
-    def _cluster_centroid(cluster: List[Tuple[int, int]]) -> Tuple[int, int]:
-        """Calculate the center point of a cluster."""
-        avg_x = sum(c[0] for c in cluster) / len(cluster)
-        avg_y = sum(c[1] for c in cluster) / len(cluster)
-        return (int(avg_x), int(avg_y))
-
-    @staticmethod
-    def _shot_point(cluster: List[Tuple[int, int]]) -> Tuple[int, int]:
-        """
-        Calculate the best point to click to maximize shot distance.
-        Uses the centroid X but shoots ABOVE the cluster (minimum Y)
-        so the harpoon has maximum travel length.
-        """
-        avg_x = int(sum(c[0] for c in cluster) / len(cluster))
-        min_y = min(c[1] for c in cluster)
-        # Shoot 30px above the highest coin for maximum arc
-        return (avg_x, min_y - 30)
-
-    # ── Best shot selection ───────────────────────────────────────────
-
-    def _find_best_shot(self) -> Optional[Tuple[int, int]]:
-        """
-        Find the best position to click:
-        1. Scan all coins
-        2. Group into clusters
-        3. Pick the biggest cluster
-        4. Return shot point above the cluster (max distance)
-        """
+    def _find_best_shot(self):
         coins = self._scan_all_coins()
+        if not coins or self.region is None:
+            return None
+        x, y, w, h = self._water_region
+        launch = np.array([x+w/2, y+h*.96])
+        points = np.asarray(coins)
+        # Score trajectories from the launcher through a real coin center.
+        # This is a geometric heuristic; projectile physics remain game-dependent.
+        def score(point):
+            direction = np.asarray(point)-launch
+            distance = np.linalg.norm(direction)
+            unit = direction/distance
+            offsets = points-launch
+            along = offsets @ unit
+            across = np.abs(offsets[:, 0]*unit[1]-offsets[:, 1]*unit[0])
+            hits = (along > 0) & (along <= distance+.025*w) & (across < .022*w)
+            return int(hits.sum()), distance
+        return max(coins, key=score)
 
-        if not coins:
-            # No coins visible - aim at center of game area
-            rx, ry, rw, rh = self.region
-            return (rx + rw // 2, ry + rh // 3)
-
-        total_coins = len(coins)
-        print(f"  Found {total_coins} coin pixels")
-
-        # Cluster coins
-        clusters = self._cluster_coins(coins)
-        print(f"  Grouped into {len(clusters)} clusters")
-
-        # Pick the biggest cluster
-        best_cluster = max(clusters, key=len)
-        # Use the shot point (above cluster) instead of centroid for max distance
-        shot = self._shot_point(best_cluster)
-
-        # Show cluster stats
-        sizes = sorted([len(c) for c in clusters], reverse=True)
-        print(f"  Cluster sizes: {sizes[:5]}{'...' if len(sizes) > 5 else ''}")
-        print(f"  → Shooting biggest cluster ({len(best_cluster)} coins) at {shot}")
-
-        return shot
-
-    # ── End screen detection ──────────────────────────────────────────
-
-    def _is_end_screen(self) -> bool:
-        """Check if the game has ended (cyan end screen)."""
+    def _click_target(self, target):
+        """Guard every click; reject screenshot/mouse coordinate scale mismatch."""
+        if target is None or self.region is None:
+            return False
+        sw, sh = pyautogui.size()
+        if self._frame_size != (sw, sh):
+            return False
+        x, y = target
         rx, ry, rw, rh = self.region
-        check_points = [
-            (rx + rw // 2, ry + rh // 2),
-            (rx + rw // 2, ry + rh - 80),
-        ]
-        for px, py in check_points:
-            try:
-                r, g, b = pyautogui.pixel(px, py)
-                if (abs(r - END_SCREEN_COLOR[0]) <= 5 and
-                    abs(g - END_SCREEN_COLOR[1]) <= 5 and
-                    abs(b - END_SCREEN_COLOR[2]) <= 5):
-                    return True
-            except Exception:
-                pass
-        return False
+        if not (0 < x < sw-1 and 0 < y < sh-1 and rx < x < rx+rw-1 and ry < y < ry+rh-1):
+            return False
+        pyautogui.click(x, y)
+        return True
 
-    # ── Main play loop ────────────────────────────────────────────────
-
-    def play(self) -> bool:
-        """Play one round of Coin Fisher."""
-        print("START Coin Fisher v2 (Cluster Mode)")
-        start_time = time.time()
+    def play(self):
+        print('START Coin Fisher (adaptive coin detection)')
+        start = time.monotonic()
         last_click = 0
-
+        missing_since = None
         try:
-            while time.time() - start_time < self.game_duration:
-                if self._is_end_screen():
-                    print("  End screen detected - game complete!")
-                    break
-
-                now = time.time()
-                if now - last_click > self.click_cooldown:
-                    target = self._find_best_shot()
-                    if target:
-                        pyautogui.click(target[0], target[1])
-                        last_click = now
-
-                time.sleep(0.25)
-
-            print("END Coin Fisher v2")
-            return True
-
-        except Exception as e:
-            print(f"  Error in Coin Fisher: {e}")
+            while time.monotonic()-start < self.game_duration:
+                target = self._find_best_shot()
+                if self._ended:
+                    print('END Coin Fisher: end panel detected')
+                    return True
+                now = time.monotonic()
+                if target is None:
+                    if missing_since is None:
+                        missing_since = now
+                    if now-missing_since > 5:
+                        print('Coin Fisher: board/coins unavailable; stopped without clicking.')
+                        return False
+                else:
+                    missing_since = None
+                    if now-last_click >= self.click_cooldown:
+                        if not self._click_target(target):
+                            print('Coin Fisher: unsafe screen coordinates; stopped.')
+                            return False
+                        last_click = time.monotonic()
+                time.sleep(.15)
+            print('END Coin Fisher: time limit reached (result unverified)')
+            return False
+        except pyautogui.FailSafeException:
+            raise
+        except Exception as exc:
+            print(f'Coin Fisher error: {exc}')
             return False
