@@ -184,9 +184,9 @@ class GameOrchestrator:
                 if self._run_single_game(game_id):
                     played_any = True
                 else:
-                    print(f"! {game_id} not available, skipping to next game...")
+                    print(f"! {game_id}: unavailable or result unverified; continuing to next game...")
             if not played_any:
-                print("No games available. Waiting and retrying...")
+                print("No verified completions in this cycle. Waiting and retrying...")
                 sleep(30)
 
     def run(self):

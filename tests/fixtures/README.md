@@ -1,3 +1,33 @@
+`tokenblaster_level1.png` is the game-only crop supplied on 2026-09-11 at
+22:24:28. It contains 27 enemies (7 green, 20 orange), one yellow projectile
+and the player ship. Offline tests cover zoom/translation, target selection,
+nearby-threat avoidance and suppression of input for unknown frames.
+Run `python -m unittest discover -s tests -p test_tokenblaster_vision.py -v`.
+These checks do not establish live wins or validate later levels.
+
+`tokenblaster_video_09.png`, `_30.png`, `_36.png` and `_destroyed.png` are
+game-only frames from the supplied 2026-09-11 22:33:10 recording at 9, 30, 36
+and 37.5 seconds. The first three contain 28, 13 and 5 enemies; the last has
+no player ship. They cover muted recording colors, exhaust animation, explosion
+rejection and loss of the ship. Control tests reproduce the previous 45 ms
+movement pulses and abandonment of nearby columns, and check target retention,
+firing alignment and release of input on unknown frames.
+
+`tokenblaster_video_372.png` and `_373.png` are game-only crops at 37.2 and
+37.3 seconds from that same recording. The ship has exploded. Tests replay
+both crops and their original screen placement to catch explosion fragments
+misidentified as the player. Synthetic trajectories exercise diagonal incoming
+shots, divers arriving from below, multiple threats, receding shots and stale
+tracking. These validate steering decisions, not physical collision-free wins.
+
+`tokenblaster_short_exhaust.png` is the game-only crop of the diagnostic image
+supplied on 2026-09-11 at about 23:17. The live ship is at the right edge with
+a short blue exhaust. The cockpit splits the gray nose and body into separate
+components; regression coverage requires them to form one detected ship at
+the original screen position while preserving explosion rejection.
+It also verifies that the bright nose is excluded from projectile detection;
+the frame contains one actual yellow projectile.
+
 `coinfisher.png` is the game-only crop of the screenshot supplied on 2026-09-10.
 It contains 28 visible coins; account details and surrounding browser UI are excluded.
 

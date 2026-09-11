@@ -4,6 +4,15 @@
 
 ---
 
+## Unreleased
+
+- Token Blaster is now selectable in the main GUI as beta, using the existing
+  configured game order, icon/Start positions and reward/navigation routine.
+  Includes ship tracking, target retention and predictive collision avoidance.
+  One live win has been reported; later levels and automatic result recognition
+  still need validation. Flappy Rocket remains in development.
+- Routine messages distinguish unverified results from confirmed completions.
+
 ## Version 1.2.0 (Current) - Higher levels and reliable round completion
 **Release Date**: *September 11, 2026*
 

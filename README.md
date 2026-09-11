@@ -56,10 +56,41 @@ game bots, so adding a new mini-game is as easy as dropping a new module in the
 | 5 | 🪝 **Coin Fisher** | Aiming | Adaptive board detection, individual coin centers and trajectory scoring | ✅ |
 | 6 | 🎮 **CoinMatch** | Match-3 | Adaptive 8x8 detection, seven coin types and scored swaps | ✅ |
 | 7 | 🚀 **Flappy Rocket** | Flappy | Rocket tracking + obstacle gap detection | 🚧 In lavorazione |
-| 8 | 💥 **Token Blaster** | Shooter | Auto-fire + red enemy targeting | 🚧 In lavorazione |
+| 8 | 💥 **Token Blaster** | Shooter | Ship tracking, targeting and predicted collision avoidance | 🧪 Beta disponibile |
 
 All games are registered at startup by `game_engine/games/__init__.py` and
 appear automatically in the GUI — no hardcoded game lists.
+
+Token Blaster recognizes the board, animated ship, green/orange enemies and
+yellow and pale projectile candidates, including the muted colors of the supplied video.
+It retains a nearby target until it disappears and fires while an enemy is in
+the shot lane. Movement stays held between valid readings instead of stopping
+during every capture/analysis. Detection runs on a reduced image. Short-lived
+motion tracks estimate projectile and enemy velocities; steering compares the
+left, stationary and right routes over about 0.7 seconds, including ship size,
+board edges and uncertainty in movement speed. A predicted collision overrides
+targeting and pauses fire. Orange divers remain visible to the detector near
+the ship; hull shape and blue cockpit reject explosion fragments. These linear
+forecasts still need live calibration, especially curved dives, crowded scenes
+and unfamiliar projectiles. Later levels and result dialogs remain unverified.
+In the supplied video, ship recognition still drops briefly at 31.7–32.0 seconds;
+input pauses during those unknown readings. Offline replay does not prove wins.
+A missing board/ship releases keys and
+stops after three seconds; timeout and loss of detection return an unverified
+result. Token Blaster is selectable in the main GUI as beta: configure its icon
+and Start positions, enable it in Game Order, save and use Start Bot. A live win
+has been reported by the user; later levels and automatic result verification
+remain under development. The existing routine handles reward clicking and the
+transition to the next game. Existing executables must be rebuilt to include it.
+
+Inspect without input: `python test_tokenblaster.py --image tests/fixtures/tokenblaster_level1.png`.
+For an already started round: `python test_tokenblaster.py --play`, then focus
+the game during the four-second countdown. Press Q to stop.
+The standalone launcher prints the stop reason. On an unverified stop (except Q)
+it saves the last full screenshot and reason locally to
+`debug/tokenblaster/last_failure.png` and `last_failure.txt`; these are Git-ignored.
+Offline regressions: `python -m unittest discover -s tests -p "test_tokenblaster*.py" -v`.
+
 
 2048 Coins keeps its `down, left, down, right, down` pattern. It checks for the
 cyan reward button, its CLAIM REWARD lettering, and the surrounding gray dialog
