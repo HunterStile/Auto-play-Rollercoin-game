@@ -17,6 +17,26 @@ EXPECTED = tuple(tuple(KEY[c] for c in row) for row in (
 
 
 class CoinMatchTests(unittest.TestCase):
+    def test_result_panel_returns_to_routine_for_claim(self):
+        from game_engine.orchestrator import GameOrchestrator
+        screen = self.screen()
+        panel = Image.new('RGB', screen.size, (3, 225, 228))
+        frames = iter((screen, panel, panel))
+        routine = GameOrchestrator({'COINMATCH_POSITION': (10, 20),
+                                   'COINMATCH_START': (30, 40),
+                                   'GAIN_POWER_POSITION': (500, 600)})
+        with patch('pyautogui.screenshot', side_effect=lambda: next(frames, panel)), \
+                patch('game_engine.games.coinmatch.time.monotonic', side_effect=range(100)), \
+                patch('game_engine.games.coinmatch.time.sleep'), \
+                patch('game_engine.orchestrator.sleep'), \
+                patch('game_engine.orchestrator.wait_game_ready', return_value=True), \
+                patch('game_engine.orchestrator.click') as click, \
+                patch('pyautogui.press'), patch('pyautogui.scroll'), \
+                patch('pyautogui.mouseDown') as down:
+            self.assertTrue(routine._run_single_game('coinmatch'))
+            self.assertEqual(click.call_args.args, (500, 600))
+            down.assert_not_called()
+
     def screen(self, scale=1, origin=(200, 150)):
         with Image.open(FIXTURE) as source:
             board = source.convert('RGB')

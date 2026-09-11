@@ -17,6 +17,8 @@ unsigned executables.
 import os
 import subprocess
 import sys
+from pathlib import Path
+from app_version import VERSION
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 PNG_ICON = os.path.join(PROJECT_DIR, "logo-exe.png")
@@ -68,6 +70,20 @@ def main():
         sys.exit(1)
 
     icon = prepare_icon()
+    version_file = Path(PROJECT_DIR) / 'build' / 'version_info.txt'
+    version_file.parent.mkdir(exist_ok=True)
+    version_tuple = tuple(int(part) for part in VERSION.split('.')) + (0,)
+    version_file.write_text(f'''VSVersionInfo(
+  ffi=FixedFileInfo(filevers={version_tuple!r}, prodvers={version_tuple!r},
+    mask=0x3f, flags=0x0, OS=0x40004, fileType=0x1, subtype=0x0, date=(0, 0)),
+  kids=[StringFileInfo([StringTable('040904B0', [
+    StringStruct('FileDescription', 'RollerCoin Auto-Play Bot'),
+    StringStruct('FileVersion', '{VERSION}'),
+    StringStruct('ProductName', 'RollerCoin Auto-Play Bot'),
+    StringStruct('ProductVersion', '{VERSION}'),
+    StringStruct('OriginalFilename', 'RollerCoin-bot.exe')
+  ])]), VarFileInfo([VarStruct('Translation', [1033, 1200])])]
+)''', encoding='utf-8')
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",
@@ -75,6 +91,10 @@ def main():
         "--onefile",
         "--windowed",            # GUI only, no black console window
         "--name", "RollerCoin-bot",
+        "--version-file", str(version_file),
+        "--hidden-import", "functions",
+        "--hidden-import", "cerca_posizione",
+        "--hidden-import", "Elezioni",
         # numpy 2.x needs ALL its submodules+data collected or the frozen exe
         # fails with "No module named 'numpy._core._exceptions'".
         "--collect-all", "numpy",

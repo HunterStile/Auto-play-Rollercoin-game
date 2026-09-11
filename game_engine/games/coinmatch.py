@@ -1,6 +1,7 @@
 """Coin Match level one: adaptive board reading and verified match-3 swaps."""
 import time
 
+import numpy as np
 import pyautogui
 
 from game_engine.base import BaseGame
@@ -47,9 +48,34 @@ class CoinMatchBot(BaseGame):
         self._blocked = set()
         self._blocked_signature = None
         self._ready_move = None
+        self._end_region = None
+        self._end_seen = 0
+        self._ended = False
+
+    def _is_end_screen(self, frame):
+        if self._end_region is None:
+            return False
+        box, size = self._end_region
+        if frame.size != size:
+            return False
+        pixels = np.asarray(frame.crop(box), dtype=np.int16)
+        return bool((np.max(np.abs(pixels-(3, 225, 228)), axis=2) <= 5).mean() > .65)
 
     def _scan_grid(self):
-        self.board = detect_board(pyautogui.screenshot(), self.search_region)
+        frame = pyautogui.screenshot().convert('RGB')
+        if self._is_end_screen(frame):
+            self._end_seen += 1
+            self._ended = self._end_seen >= 2
+            self.board = None
+            return None
+        self._end_seen = 0
+        self.board = detect_board(frame, self.search_region)
+        if self.board:
+            xs, ys = self.board.xs, self.board.ys
+            dx, dy = (xs[-1]-xs[0])/7, (ys[-1]-ys[0])/7
+            self._end_region = (tuple(round(v) for v in
+                                     (xs[0]+1.5*dx, ys[0]+1.5*dy,
+                                      xs[0]+5.5*dx, ys[0]+5.5*dy)), frame.size)
         return self.board.grid if self.board else None
 
     def _evaluate_move(self, grid, r1, c1, r2, c2):
@@ -147,18 +173,25 @@ class CoinMatchBot(BaseGame):
         self._previous = self._stable_since = self._pending = None
         self._blocked.clear()
         self._blocked_signature = self._ready_move = None
+        self._end_region = None
+        self._end_seen = 0
+        self._ended = False
         start = time.monotonic()
         last_available = start
         try:
             while time.monotonic()-start < self.game_duration:
                 move = self._find_best_move()
+                if self._ended:
+                    print('END Coin Match: end panel detected; returning to reward collection.')
+                    return True
                 if move:
                     if not self._make_move(*move):
                         print('Coin Match: screen coordinates unavailable; stopped.')
                         return False
                     last_available = time.monotonic()
-                elif self._pending:
-                    last_available = time.monotonic()
+                elif self._pending and time.monotonic()-self._pending[2] > 3:
+                    # A vanished grid must not keep renewing the inactivity timer.
+                    self._pending = None
                 if time.monotonic()-last_available > 8:
                     print('Coin Match: no playable board (possibly round ended); result unverified.')
                     return False

@@ -14,6 +14,7 @@ import subprocess
 import sys
 import os
 from pathlib import Path
+from app_version import VERSION
 
 # Import the engine to register all games
 from game_engine.registry import GameRegistry
@@ -85,7 +86,7 @@ GAME_DISPLAY_ORDER = [
 class GameConfigGUI:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("RollerCoin Auto-Play Bot — Configuration")
+        self.root.title(f"RollerCoin Auto-Play Bot {VERSION} — Configuration")
         self.root.geometry("700x940")
         self.root.minsize(640, 620)
         self.root.configure(bg=BG)
@@ -777,7 +778,7 @@ def _run_selftest():
         "cerca_posizione",
         "Elezioni",
     ]
-    lines = [f"RollerCoin-bot selftest - {sys.version}"]
+    lines = [f"RollerCoin-bot {VERSION} selftest - {sys.version}"]
     for mod in mods:
         try:
             importlib.import_module(mod)
@@ -788,7 +789,7 @@ def _run_selftest():
     report = os.path.join(EXE_DIR, "selftest.txt")
     with open(report, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
-    sys.exit(0)
+    sys.exit(1 if any(line.startswith('FAIL') for line in lines) else 0)
 
 
 if __name__ == "__main__":

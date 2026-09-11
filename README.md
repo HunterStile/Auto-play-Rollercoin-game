@@ -50,7 +50,7 @@ game bots, so adding a new mini-game is as easy as dropping a new module in the
 | # | Game | Type | Strategy | Status |
 |---|------|------|----------|--------|
 | 1 | 🪙 **CoinClick** | Clicking | Pixel color detection & rapid clicks | ✅ |
-| 2 | 🃏 **CoinFlip** (Memory) | Memory | Card color memorization, 3 difficulty levels | ✅ |
+| 2 | 🃏 **CoinFlip** (Memory) | Memory | Automatic grid detection, visual memory and verified pair removal | ✅ |
 | 3 | 🔢 **2048 Coins** | Puzzle | Arrow-key tile merging pattern | ✅ |
 | 4 | 🐹 **Hamster Climber** | Reaction | Green-bar detection + spacebar jumps | ✅ |
 | 5 | 🪝 **Coin Fisher** | Aiming | Adaptive board detection, individual coin centers and trajectory scoring | ✅ |
@@ -60,6 +60,29 @@ game bots, so adding a new mini-game is as easy as dropping a new module in the
 
 All games are registered at startup by `game_engine/games/__init__.py` and
 appear automatically in the GUI — no hardcoded game lists.
+
+Coin Flip now detects its card grid automatically; its manual difficulty selector
+has been removed. Old `LEVEL_MEMORY` settings are ignored by the bot. Start with
+the entire rack visible and preferably all cards covered. The detector supports
+4 rows with 3, 4 or 5 columns. The supplied real screenshots validate 12 cards;
+16/20-card layouts have only been tested with synthetic racks and still need
+real level screenshots. Face matching compares spatial color and symbol images,
+without requiring a predefined list of currency names.
+
+Run `python test_coinflip.py` to inspect the screen without clicking, or
+`python test_coinflip.py --play` to play an already started round after a
+four-second countdown. The bot opens unknown cards, prioritizes remembered pairs,
+waits for mismatches to close and confirms pairs by their disappearance. A moved
+rack clears stale coordinates and memory. Unknown readings suppress clicks;
+three failed opening attempts exclude a card. Eight seconds without progress or
+a 75-second time limit stops the round with an unverified result. All cards
+observed removed counts as completion. The shared cyan end-panel color
+(RGB 3, 225, 228) also ends the round after two consecutive readings covering
+most of the last rack's central area, including after a transition frame. This
+color check detects a finished round; it does not distinguish victory from defeat.
+The panel check is tested with synthetic frames and needs live confirmation.
+Move the mouse to the top-left corner to stop. Live animation timing and unseen
+card artwork still need testing. Rebuild existing `.exe` files to include this update.
 
 Coin Match level 1 is selectable in the GUI as **sperimentale**. It recognizes
 BTC, DOGE, ETH and DASH and locates the grid automatically. Keep all 64 coins
@@ -72,8 +95,9 @@ To play one already started round, run `python test_coinmatch.py --play` and
 focus the game during the four-second countdown. Move the mouse to the top-left
 corner to stop through PyAutoGUI failsafe. The bot waits for stable readings and
 avoids repeating an unconfirmed swap on the same board. It stops after eight
-seconds without a playable board or after 75 seconds; it does not yet recognize
-the final result or certify a win. Other coin types and levels need more samples.
+seconds without a playable board or after 75 seconds. Two consecutive cyan
+end-panel readings return control to the routine for its configured Claim reward
+click; they do not certify a win. Other coin types and levels need more samples.
 Validation covers screenshot replays and mocked input; live drag behavior still
 needs verification. Source changes require rebuilding any existing `.exe`.
 
@@ -196,7 +220,7 @@ Typical defaults for 1920×1080 (from the saved `game_config.json`):
 | Game | Game position | Start button | Difficulty |
 |------|--------------|-------------|-----------|
 | CoinClick | 842, 289 | 907, 427 | — |
-| CoinFlip (Memory) | 838, 1004 | 992, 500 | 1–3 |
+| CoinFlip (Memory) | 838, 1004 | 992, 500 | Automatic |
 | 2048 | 1185, 857 | 915, 497 | — |
 | Hamster Climber | 854, 710 | 859, 481 | — |
 | Coin Fisher | 483, 696 | 904, 480 | — |

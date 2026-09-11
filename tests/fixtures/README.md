@@ -30,3 +30,22 @@ python test_coinmatch.py --image tests/fixtures/coinmatch_level1.png
 ```
 
 The second command only prints the detected board and suggested swap; no clicks.
+
+
+Coin Flip fixtures are rack-only crops of the user's screenshots from 2026-09-10;
+the wallet/browser area is excluded:
+
+- `coinflip_covered.png`: 09:37:22, twelve covered cards.
+- `coinflip_pair.png`: 09:37:32, Monero exposed at (row 2, col 1) and (row 3, col 2).
+- `coinflip_mixed.png`: 09:37:42, those two slots empty, RollerCoin and Binance
+  exposed at (row 2, col 2) and (row 2, col 3).
+
+`tests/test_coinflip.py` tests image replay at 70%, 100% and 120%, rejects absent,
+clipped and ambiguous racks, and exercises memory and input with no real clicks.
+Larger 16/20-card racks are constructed from the supplied back sprites: these
+verify geometry only and are not evidence of the real higher-level appearance.
+
+```powershell
+python test_coinflip.py --image tests/fixtures/coinflip_mixed.png
+python -m unittest discover -s tests -v
+```

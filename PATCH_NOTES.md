@@ -4,7 +4,31 @@
 
 ---
 
-## 🚀 Version 1.0.0 (Current) - "Standalone Edition"
+## Version 1.1.0 (Current) - Adaptive puzzle bots
+**Release Date**: *September 11, 2026*
+
+- Coin Match level 1: automatic 8x8 grid and coin recognition, stable-board
+  checks, scored swaps and feedback for unconfirmed moves. Available in the GUI
+  as experimental.
+- Coin Flip: automatic 12/16/20-card layout detection, visual card memory,
+  prioritization of known pairs and confirmation when matched cards disappear.
+  The manual difficulty selector is no longer required.
+- Fixed Coin Flip losing its grid when card highlights or matched cards disappear.
+- Coin Match and Coin Flip recognize the shared cyan end panel and return to
+  the routine for the configured Claim reward click. End-panel color does not
+  distinguish victory from defeat.
+- Coin Fisher: adaptive board detection and individual coin targeting.
+- The Windows executable now includes version 1.1.0 metadata and a self-test
+  that reports missing packaged modules with a nonzero exit code.
+
+Validation: 33 offline regression tests, including the reward-collection path.
+Coin Flip's 12-card screenshots are real; 16/20-card layouts were tested with
+synthetic racks and still need real higher-level screenshots. End-panel checks
+were tested with synthetic panels. Flappy Rocket and Token Blaster remain disabled.
+
+---
+
+## 🚀 Version 1.0.0 - "Standalone Edition"
 **Release Date**: *August 2026*
 
 ### ✨ Highlights
