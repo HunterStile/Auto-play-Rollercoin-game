@@ -16,7 +16,7 @@ def main():
     mode.add_argument('--play', action='store_true', help='Play the already started, visible game')
     args = parser.parse_args()
     if args.play:
-        print('Apri Coin Match livello 1. Avvio fra 4 secondi; angolo alto sinistro per fermare.')
+        print('Apri Coin Match. Avvio fra 4 secondi; angolo alto sinistro per fermare.')
         time.sleep(4)
         CoinMatchBot().play()
         return
@@ -31,7 +31,7 @@ def main():
     if board is None:
         print('Griglia 8x8 completa non riconosciuta: attendi fine animazioni e verifica visibilita.')
         return
-    print('64/64 monete riconosciute (BTC, DOGE, ETH, DASH).')
+    print('64/64 monete riconosciute (BTC, DOGE, ETH, DASH, XMR, BLUE_GRAY, YELLOW_SYMBOL).')
     for index, row in enumerate(board.grid, 1):
         print(f'{index}: ' + ' '.join(f'{coin:4}' for coin in row))
     bot = CoinMatchBot()

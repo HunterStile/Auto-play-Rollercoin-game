@@ -70,7 +70,7 @@ SECONDARY_BTN = "Secondary.TButton"
 DANGER_BTN = "Danger.TButton"
 
 IN_PROGRESS_GAMES = {"flappyrocket", "tokenblaster"}
-EXPERIMENTAL_GAMES = {"coinmatch": "livello 1 - sperimentale"}
+EXPERIMENTAL_GAMES = {}
 GAME_DISPLAY_ORDER = [
     "coinclick",
     "coinflip",

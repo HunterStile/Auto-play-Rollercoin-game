@@ -5,7 +5,7 @@ Auto-clicks coins based on pixel color detection.
 """
 
 import pyautogui
-from time import sleep
+from time import monotonic, sleep
 from game_engine.base import BaseGame
 from game_engine.registry import register_game
 from game_engine.utils import click
@@ -36,6 +36,7 @@ class CoinClickBot(BaseGame):
 
     def __init__(self, config=None):
         super().__init__(config)
+        self.game_duration = self.config.get('game_duration', 75)
         self.region = config.get('scan_region', SCAN_REGION) if config else SCAN_REGION
 
     def _mouse_click(self, x, y, wait=0.0):
@@ -47,14 +48,21 @@ class CoinClickBot(BaseGame):
     def play(self) -> bool:
         """Play one round of CoinClick."""
         print("START CoinClick")
+        deadline = monotonic() + self.game_duration
         try:
             running = True
             while running:
+                if monotonic() >= deadline:
+                    print('END CoinClick: time limit; result unverified.')
+                    return False
                 pic = pyautogui.screenshot(region=self.region)
                 width, height = pic.size
 
                 for x in range(0, width, 5):
                     for y in range(0, height, 5):
+                        if monotonic() >= deadline:
+                            print('END CoinClick: time limit; result unverified.')
+                            return False
                         r, g, b = pic.getpixel((x, y))
 
                         # End screen detected
@@ -78,6 +86,9 @@ class CoinClickBot(BaseGame):
                         if b == 230 and r == 230:  # grey coin
                             self._mouse_click(x + 5, y + 10)
                             break
+
+                    if not running:
+                        break
 
             print("END CoinClick")
             return True

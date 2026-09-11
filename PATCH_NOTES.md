@@ -4,7 +4,34 @@
 
 ---
 
-## Version 1.1.0 (Current) - Adaptive puzzle bots
+## Version 1.2.0 (Current) - Higher levels and reliable round completion
+**Release Date**: *September 11, 2026*
+
+- Coin Match: supports seven coin types through the supplied final-level boards,
+  adding Monero, blue/gray and bright-yellow symbol coins. Improved two-tone
+  geometry and shaded-rim recognition; removed the GUI's level-one experimental label.
+- Coin Flip: real 16/20-card coverage; fixed black-and-white faces stalling the
+  bot and silver Litecoin being mistaken for an empty cell. Litecoin is now
+  remembered and mismatches lead to continued exploration.
+- 2048 Coins: preserved the arrow pattern, added stable CLAIM REWARD button and
+  dialog recognition that rejects cyan gameplay elements, and added an offline
+  inspection/manual-play script. Replaced repetition counting with a 120-second
+  real-time ceiling for longer rounds.
+- CoinClick and Hamster Climber: added 75-second limits, checked during pixel
+  scanning. End detection also stops the remaining scan immediately.
+- Updated screenshot fixtures, documentation, diagnostic messages and 1.2.0
+  application/Windows version metadata.
+
+Validation: 48 offline regression tests passed, plus mocked timeout and normal-end
+checks for CoinClick and Hamster Climber. New screenshot tests cover 70%, 100%
+and 120% scale. Live timing and unseen result layouts remain subject to gameplay
+verification. Flappy Rocket and Token Blaster remain disabled in the GUI.
+
+Full release notes: [1.2.0](release-notes/1.2.0.md).
+
+---
+
+## Version 1.1.0 - Adaptive puzzle bots
 **Release Date**: *September 11, 2026*
 
 - Coin Match level 1: automatic 8x8 grid and coin recognition, stable-board

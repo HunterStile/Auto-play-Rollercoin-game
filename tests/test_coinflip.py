@@ -23,6 +23,94 @@ def observations(states):
 
 
 class CoinFlipVisionTests(unittest.TestCase):
+    def test_litecoin_is_remembered_and_mismatch_does_not_repeat(self):
+        for scale in (.7, 1, 1.2):
+            with self.subTest(scale=scale):
+                frames = []
+                for name in ('litecoin_193834', 'litecoin_193844'):
+                    source = fixture(name)
+                    screen = Image.new('RGB', (1700, 1100), (24, 25, 40))
+                    screen.paste(source.resize((round(source.width*scale),
+                                                round(source.height*scale))), (200, 100))
+                    frames.append(screen)
+                bot = CoinFlipBot()
+                for index, frame in enumerate(frames):
+                    with patch('pyautogui.screenshot', return_value=frame):
+                        cards = bot._observe()
+                    self.assertIsNotNone(cards)
+                    self.assertEqual(len(cards), 20)
+                    self.assertEqual(cards[3, 1][0], 'face')
+                    self.assertEqual({p for p, (s, _) in cards.items() if s == 'empty'},
+                                     {(0, 0), (0, 2), (0, 3), (1, 0)})
+                    self.assertEqual(sum(s == 'face' for s, _ in cards.values()), index+1)
+                    bot._next_action(cards, index*2)
+                    move = bot._next_action(cards, index*2+.3)
+                    self.assertIn((3, 1), bot.card_memory)
+                    self.assertNotIn((3, 1), bot.found_pairs)
+                    if index == 0:
+                        self.assertIsNotNone(move)
+                    else:
+                        self.assertIsNone(move, 'Wait for both mismatched cards to close')
+                        self.assertEqual(set(bot._shown_pair), {(3, 1), (2, 4)})
+                        self.assertFalse(same_face(bot.card_memory[3, 1], bot.card_memory[2, 4]))
+                # Replay the two backs closing with a real back sprite.
+                closed = frames[-1].copy()
+                back = closed.crop(bot.layout.box((2, 3)))
+                for pos in ((3, 1), (2, 4)):
+                    box = bot.layout.box(pos)
+                    closed.paste(back.resize((box[2]-box[0], box[3]-box[1])), box[:2])
+                with patch('pyautogui.screenshot', return_value=closed):
+                    cards = bot._observe()
+                bot._next_action(cards, 4)
+                move = bot._next_action(cards, 4.3)
+                self.assertIsNotNone(move)
+                self.assertNotIn(move, ((3, 1), (2, 4)))
+                self.assertIn(frozenset(((3, 1), (2, 4))), bot._mismatches)
+                self.assertIn((3, 1), bot.card_memory)
+
+    def test_real_4x4_empty_slots_and_monochrome_face(self):
+        for name in ('4x4', 'monochrome'):
+            for scale, origin in [(1, (300, 100)), (.7, (100, 180)), (1.2, (750, 100))]:
+                with self.subTest(name=name, scale=scale):
+                    source = fixture(name)
+                    screen = Image.new('RGB', (1700, 1100), (24, 25, 40))
+                    screen.paste(source.resize((round(source.width*scale),
+                                                round(source.height*scale))), origin)
+                    bot = CoinFlipBot()
+                    with patch('pyautogui.screenshot', return_value=screen), \
+                            patch('pyautogui.size', return_value=screen.size), \
+                            patch('pyautogui.click') as click:
+                        cards = bot._observe()
+                        self.assertIsNotNone(cards)
+                        self.assertEqual(len(cards), 16)
+                        for pos, (state, _) in cards.items():
+                            expected = 'covered'
+                            if name == '4x4' and pos in ((1, 0), (2, 2)):
+                                expected = 'empty'
+                            elif name == 'monochrome' and pos == (0, 2):
+                                expected = 'face'
+                            self.assertEqual(state, expected, pos)
+                        self.assertIsNone(bot._next_action(cards, 0))
+                        move = bot._next_action(bot._observe(), .3)
+                        self.assertIsNotNone(move)
+                        self.assertEqual(cards[move][0], 'covered')
+                        if name == 'monochrome':
+                            self.assertIn((0, 2), bot.card_memory)
+                        self.assertTrue(bot._click_card(move))
+                        x, y = click.call_args.args
+                        self.assertAlmostEqual(x, bot.layout.xs[move[1]], delta=1)
+                        self.assertAlmostEqual(y, bot.layout.ys[move[0]]-.08*bot.layout.dy, delta=1)
+
+    def test_flat_achromatic_slots_do_not_become_faces(self):
+        source = fixture('monochrome')
+        layout = locate_layout(source)
+        for value, expected in [(0, 'unknown'), (60, 'unknown'), (100, 'unknown'),
+                                (150, 'empty'), (255, 'empty')]:
+            with self.subTest(value=value):
+                frame = source.copy()
+                frame.paste((value, value, value), layout.box((0, 2)))
+                self.assertEqual(read_cards(frame, layout)[0, 2][0], expected)
+
     def test_play_recognizes_end_panel_without_empty_grid_frame(self):
         board = fixture('covered')
         panel = Image.new('RGB', board.size, (3, 225, 228))

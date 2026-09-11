@@ -1,4 +1,4 @@
-"""Offline and mocked-input regression tests for Coin Match level one."""
+"""Offline and mocked-input regression tests for Coin Match boards."""
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -10,13 +10,104 @@ from game_engine.games.coinmatch import CoinMatchBot, matched_cells
 
 FIXTURE = Path(__file__).parent / 'fixtures/coinmatch_level1.png'
 KEY = {'B': 'BTC', 'D': 'DOGE', 'E': 'ETH', 'S': 'DASH'}
+MONERO_EXPECTED = tuple(tuple({**KEY, 'M': 'XMR'}[c] for c in row) for row in (
+    'SBSMSBDB', 'EEBEEBMB', 'EESMBEMS', 'BBEESSBE',
+    'SDMDDMMD', 'BSMSSEBD', 'BMEMDMEB', 'ESEBMMED',
+))
 EXPECTED = tuple(tuple(KEY[c] for c in row) for row in (
     'BSDBSBDB', 'EBDBDESB', 'BBEDSSDS', 'BEEBDBSD',
     'DDBBSDBD', 'SDDSSDSB', 'EBEEDSED', 'BBESBSES',
 ))
+BLUE_GRAY_EXPECTED = tuple(tuple({**KEY, 'M': 'XMR', 'C': 'BLUE_GRAY'}[c] for c in row) for row in (
+    'ECEEBMMD', 'DSCSDCBE', 'ESMEDSED', 'SMEBBSEB',
+    'SCMMEEDC', 'BBEBECCS', 'CMESBSSM', 'DBCBESDE',
+))
 
 
 class CoinMatchTests(unittest.TestCase):
+    def test_missing_or_unknown_final_level_coin_rejected(self):
+        for color in ('black', (40, 220, 60)):
+            with Image.open(FIXTURE.with_name('coinmatch_yellow_symbol.png')) as source:
+                screen = source.convert('RGB')
+            ImageDraw.Draw(screen).rectangle((359, 113, 419, 174), fill=color)
+            self.assertIsNone(detect_board(screen))
+
+    def test_final_level_yellow_symbol(self):
+        key = {**KEY, 'M': 'XMR', 'C': 'BLUE_GRAY', 'Y': 'YELLOW_SYMBOL'}
+        expected = tuple(tuple(key[c] for c in row) for row in (
+            'DSSCEDBD', 'CDEYYCSB', 'ESDDBEYM', 'EMDBBDSB',
+            'MDMMEMDS', 'EYCECEYB', 'BYDMDBCD', 'BBSCBYMB',
+        ))
+        with Image.open(FIXTURE.with_name('coinmatch_yellow_symbol.png')) as source:
+            original = source.convert('RGB')
+        for scale, origin in [(1, (200, 150)), (.7, (50, 300)), (1.2, (450, 50))]:
+            with self.subTest(scale=scale):
+                screen = Image.new('RGB', (1700, 1100), (24, 24, 40))
+                screen.paste(original.resize((round(original.width*scale),
+                                              round(original.height*scale))), origin)
+                board = detect_board(screen)
+                self.assertIsNotNone(board)
+                self.assertEqual(board.grid, expected)
+                for i in range(8):
+                    self.assertAlmostEqual(board.xs[i], origin[0]+(181+69.3*i)*scale, delta=3)
+                    self.assertAlmostEqual(board.ys[i], origin[1]+(75+69.3*i)*scale, delta=3)
+                bot = CoinMatchBot()
+                move = bot._best_move(board.grid)
+                self.assertIsNotNone(move)
+                self.assertGreaterEqual(bot._evaluate_move(board.grid, *move)[0], 3)
+
+    def test_incomplete_blue_gray_coin_rejected(self):
+        for box in [(209, 39, 269, 69), (209, 69, 269, 100)]:
+            with Image.open(FIXTURE.with_name('coinmatch_blue_gray.png')) as source:
+                screen = source.convert('RGB')
+            ImageDraw.Draw(screen).rectangle(box, fill='black')
+            self.assertIsNone(detect_board(screen))
+
+    def test_blue_gray_board_at_different_scales_and_offsets(self):
+        with Image.open(FIXTURE.with_name('coinmatch_blue_gray.png')) as source:
+            original = source.convert('RGB')
+        for scale, origin in [(1, (200, 150)), (.7, (50, 300)), (1.2, (450, 50))]:
+            with self.subTest(scale=scale):
+                screen = Image.new('RGB', (1700, 1100), (24, 24, 40))
+                screen.paste(original.resize((round(original.width*scale),
+                                              round(original.height*scale))), origin)
+                board = detect_board(screen)
+                self.assertIsNotNone(board)
+                self.assertEqual(board.grid, BLUE_GRAY_EXPECTED)
+                for i in range(8):
+                    self.assertAlmostEqual(board.xs[i], origin[0]+(170+69.3*i)*scale, delta=3)
+                    self.assertAlmostEqual(board.ys[i], origin[1]+(70+69.3*i)*scale, delta=3)
+                bot = CoinMatchBot()
+                move = bot._best_move(board.grid)
+                self.assertIsNotNone(move)
+                self.assertGreaterEqual(bot._evaluate_move(board.grid, *move)[0], 3)
+
+    def test_incomplete_monero_rejected(self):
+        for box in [(353, 30, 412, 65), (353, 65, 412, 94)]:
+            with Image.open(FIXTURE.with_name('coinmatch_monero.png')) as source:
+                screen = source.convert('RGB')
+            ImageDraw.Draw(screen).rectangle(box, fill='black')
+            self.assertIsNone(detect_board(screen))
+
+    def test_monero_board_at_different_scales_and_offsets(self):
+        with Image.open(FIXTURE.with_name('coinmatch_monero.png')) as source:
+            original = source.convert('RGB')
+        for scale, origin in [(1, (200, 150)), (.7, (50, 300)), (1.2, (450, 50))]:
+            with self.subTest(scale=scale):
+                screen = Image.new('RGB', (1700, 1100), (24, 24, 40))
+                screen.paste(original.resize((round(original.width*scale),
+                                              round(original.height*scale))), origin)
+                board = detect_board(screen)
+                self.assertIsNotNone(board)
+                self.assertEqual(board.grid, MONERO_EXPECTED)
+                for i in range(8):
+                    self.assertAlmostEqual(board.xs[i], origin[0]+(174+69.3*i)*scale, delta=3)
+                    self.assertAlmostEqual(board.ys[i], origin[1]+(62+69.3*i)*scale, delta=3)
+                bot = CoinMatchBot()
+                move = bot._best_move(board.grid)
+                self.assertIsNotNone(move)
+                self.assertGreaterEqual(bot._evaluate_move(board.grid, *move)[0], 3)
+
     def test_result_panel_returns_to_routine_for_claim(self):
         from game_engine.orchestrator import GameOrchestrator
         screen = self.screen()

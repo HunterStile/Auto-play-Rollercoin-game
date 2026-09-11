@@ -51,22 +51,36 @@ game bots, so adding a new mini-game is as easy as dropping a new module in the
 |---|------|------|----------|--------|
 | 1 | 🪙 **CoinClick** | Clicking | Pixel color detection & rapid clicks | ✅ |
 | 2 | 🃏 **CoinFlip** (Memory) | Memory | Automatic grid detection, visual memory and verified pair removal | ✅ |
-| 3 | 🔢 **2048 Coins** | Puzzle | Arrow-key tile merging pattern | ✅ |
+| 3 | 🔢 **2048 Coins** | Puzzle | Arrow-key pattern and verified reward-dialog detection | ✅ |
 | 4 | 🐹 **Hamster Climber** | Reaction | Green-bar detection + spacebar jumps | ✅ |
 | 5 | 🪝 **Coin Fisher** | Aiming | Adaptive board detection, individual coin centers and trajectory scoring | ✅ |
-| 6 | 🎮 **CoinMatch** | Match-3 | Adaptive 8x8 detection, stable-board checks and scored swaps | 🧪 Level 1 experimental |
+| 6 | 🎮 **CoinMatch** | Match-3 | Adaptive 8x8 detection, seven coin types and scored swaps | ✅ |
 | 7 | 🚀 **Flappy Rocket** | Flappy | Rocket tracking + obstacle gap detection | 🚧 In lavorazione |
 | 8 | 💥 **Token Blaster** | Shooter | Auto-fire + red enemy targeting | 🚧 In lavorazione |
 
 All games are registered at startup by `game_engine/games/__init__.py` and
 appear automatically in the GUI — no hardcoded game lists.
 
+2048 Coins keeps its `down, left, down, right, down` pattern. It checks for the
+cyan reward button, its CLAIM REWARD lettering, and the surrounding gray dialog
+before each arrow; the cyan progress bar and tiles alone do not end a round.
+Arrows pause on the first candidate and the same dialog must persist across
+readings at least 0.25 seconds apart. `game_duration` now means real elapsed
+seconds (default 120, allowing longer higher-level rounds), not pattern repetitions. A timeout returns an unverified
+result. Reward collection remains with the existing routine and configured
+coordinates. The supplied win dialog is tested offline; unseen result layouts
+and live timing still need verification.
+
+Use `python test_coin2048.py --image path/to/screenshot.png` for an offline
+check, or `python test_coin2048.py --play` for an already started round after a
+four-second countdown. Move the mouse to the top-left corner to stop.
+
 Coin Flip now detects its card grid automatically; its manual difficulty selector
 has been removed. Old `LEVEL_MEMORY` settings are ignored by the bot. Start with
 the entire rack visible and preferably all cards covered. The detector supports
-4 rows with 3, 4 or 5 columns. The supplied real screenshots validate 12 cards;
-16/20-card layouts have only been tested with synthetic racks and still need
-real level screenshots. Face matching compares spatial color and symbol images,
+4 rows with 3, 4 or 5 columns. The supplied real screenshots validate 12-, 16-
+and 20-card racks, including empty slots, black-and-white faces and silver
+Litecoin cards. Face matching compares spatial color and symbol images,
 without requiring a predefined list of currency names.
 
 Run `python test_coinflip.py` to inspect the screen without clicking, or
@@ -84,8 +98,11 @@ The panel check is tested with synthetic frames and needs live confirmation.
 Move the mouse to the top-left corner to stop. Live animation timing and unseen
 card artwork still need testing. Rebuild existing `.exe` files to include this update.
 
-Coin Match level 1 is selectable in the GUI as **sperimentale**. It recognizes
-BTC, DOGE, ETH and DASH and locates the grid automatically. Keep all 64 coins
+Coin Match supports all seven coin types in the supplied final-level screenshots. It recognizes
+BTC, DOGE, ETH, DASH, Monero (XMR), the blue/gray higher-level coin
+(`BLUE_GRAY`) and the final-level bright-yellow coin (`YELLOW_SYMBOL`). The
+last two names are visual identifiers, not verified currency names. It locates
+the grid automatically. Keep all 64 coins
 visible. The old `grid_x`, `grid_y` and `cell_size` settings are no longer used.
 An optional `scan_region=(left, top, width, height)` passed to `CoinMatchBot`
 selects a board by its center if multiple boards are visible.

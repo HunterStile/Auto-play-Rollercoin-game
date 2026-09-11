@@ -1,4 +1,4 @@
-"""Coin Match level one: adaptive board reading and verified match-3 swaps."""
+"""Coin Match: adaptive board reading and verified match-3 swaps."""
 import time
 
 import numpy as np
@@ -33,7 +33,7 @@ def matched_cells(grid):
 class CoinMatchBot(BaseGame):
     game_id = 'coinmatch'
     display_name = 'CoinMatch'
-    description = 'Adaptive 8x8 detection and match-3 swaps (level 1)'
+    description = 'Adaptive 8x8 detection and match-3 swaps (seven coin types)'
     config_keys = {'position': 'COINMATCH_POSITION', 'start_position': 'COINMATCH_START'}
 
     def __init__(self, config=None):
@@ -168,7 +168,7 @@ class CoinMatchBot(BaseGame):
         return True
 
     def play(self):
-        print('START Coin Match: adaptive level-1 detection')
+        print('START Coin Match: adaptive detection with seven coin types')
         self.board = None
         self._previous = self._stable_since = self._pending = None
         self._blocked.clear()

@@ -6,7 +6,7 @@ Uses pixel color detection in a scan region.
 """
 
 import pyautogui
-from time import sleep
+from time import monotonic
 from game_engine.base import BaseGame
 from game_engine.registry import register_game
 
@@ -31,6 +31,7 @@ class HamsterClimberBot(BaseGame):
 
     def __init__(self, config=None):
         super().__init__(config)
+        self.game_duration = self.config.get('game_duration', 75)
         self.region = config.get('scan_region', SCAN_REGION) if config else SCAN_REGION
         self.target_color = config.get('target_color', TARGET_COLOR) if config else TARGET_COLOR
         self.tolerance = config.get('tolerance', COLOR_TOLERANCE) if config else COLOR_TOLERANCE
@@ -43,15 +44,22 @@ class HamsterClimberBot(BaseGame):
     def play(self) -> bool:
         """Play one round of Hamster Climber."""
         print("START Hamster Climber")
+        deadline = monotonic() + self.game_duration
         try:
             running = True
             while running:
+                if monotonic() >= deadline:
+                    print('END Hamster Climber: time limit; result unverified.')
+                    return False
                 pic = pyautogui.screenshot(region=self.region)
                 width, height = pic.size
                 found = False
 
                 for x in range(0, width, 15):
                     for y in range(0, height, 15):
+                        if monotonic() >= deadline:
+                            print('END Hamster Climber: time limit; result unverified.')
+                            return False
                         r, g, b = pic.getpixel((x, y))
 
                         # End screen
@@ -65,7 +73,7 @@ class HamsterClimberBot(BaseGame):
                             found = True
                             break
 
-                    if found:
+                    if found or not running:
                         break
 
             print("END Hamster Climber")

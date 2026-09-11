@@ -126,10 +126,24 @@ def read_cards(frame, layout):
             continue
         pixels = np.asarray(crop, dtype=np.int16)
         saturation = pixels.max(axis=2)-pixels.min(axis=2)
-        gray = (saturation < 12) & (pixels.mean(axis=2) > 105)
-        if gray.mean() > .88:
+        brightness = pixels.mean(axis=2)
+        gray = (saturation < 12) & (brightness > 105)
+        # Black-and-white faces have almost no saturation. Require both a
+        # substantial dark body and a bright symbol; flat blank/fade frames
+        # must not become faces.
+        monochrome_face = ((saturation < 12).mean() > .90 and
+                           (brightness < 65).mean() > .25 and
+                           (brightness > 210).mean() > .025)
+        # Litecoin is silver/white, so the gray-slot check alone mistakes it
+        # for a removed card. Its white symbol/background and darker coin body
+        # provide contrast absent from empty rack slots (including their wires).
+        silver_face = ((saturation < 12).mean() > .90 and
+                       (brightness > 235).mean() > .10 and
+                       (brightness < 200).mean() > .15 and
+                       brightness.std() > 20)
+        if gray.mean() > .88 and not silver_face:
             cards[pos] = ('empty', None)
-        elif (saturation > 35).mean() > .20:
+        elif (saturation > 35).mean() > .20 or monochrome_face or silver_face:
             cards[pos] = ('face', descriptor)
         else:
             cards[pos] = ('unknown', None)

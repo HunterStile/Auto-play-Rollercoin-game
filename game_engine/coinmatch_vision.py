@@ -1,4 +1,4 @@
-"""Read level-one Coin Match boards from RGB images, without screen input."""
+"""Read Coin Match boards, including two-tone coins, without screen input."""
 from dataclasses import dataclass
 
 import numpy as np
@@ -11,6 +11,9 @@ COIN_COLORS_RGB = {
     'DOGE': (200, 168, 62),
     'ETH': (91, 128, 231),
     'DASH': (0, 116, 184),
+    'XMR': (236, 150, 0),
+    'BLUE_GRAY': (32, 148, 211),
+    'YELLOW_SYMBOL': (255, 213, 17),
 }
 
 
@@ -31,6 +34,9 @@ def _labels(pixels):
         np.abs(pixels.astype(np.int16) - color).sum(axis=2)
         for color in COIN_COLORS_RGB.values()
     ])
+    # A tight blue tolerance avoids stealing antialiased DASH edge pixels.
+    blue = tuple(COIN_COLORS_RGB).index('BLUE_GRAY')
+    distances[blue][distances[blue] > 25] = 1000
     labels = distances.argmin(axis=0) + 1
     labels[distances.min(axis=0) > 65] = 0
     return labels
@@ -46,8 +52,41 @@ def detect_board(frame, search_region=None):
     pixels = np.asarray(frame.convert('RGB'))
     labels = _labels(pixels[::2, ::2])
     coins = []
-    for kind in range(1, 5):
-        for x, y, w, h, area in components(labels == kind):
+    for kind in range(1, len(COIN_COLORS_RGB)+1):
+        mask = labels == kind
+        bodies = components(mask)
+        if kind == tuple(COIN_COLORS_RGB).index('BLUE_GRAY')+1:
+            # Its blue symbol and thin rim are separated by a pale body.
+            # Join the neutral body for geometry, requiring blue AND gray so
+            # white symbols on other coins cannot become duplicate candidates.
+            small = pixels[::2, ::2].astype(np.int16)
+            neutral = (small.max(axis=2)-small.min(axis=2) < 12)
+            gray = neutral & (np.abs(small.mean(axis=2)-198) <= 15)
+            pale = neutral & (small.mean(axis=2) >= 225)
+            bodies = [(x, y, w, h, area)
+                      for x, y, w, h, area in components(mask | gray | pale)
+                      if 10 <= w <= 90 and 10 <= h <= 90
+                      and mask[y:y+h, x:x+w].mean() > .12
+                      and gray[y:y+h, x:x+w].mean() > .15]
+        if kind == tuple(COIN_COLORS_RGB).index('XMR')+1:
+            # The white M separates the orange top from the gray bottom.
+            # Pair both halves for geometry, but only orange votes for identity.
+            gray = np.max(np.abs(pixels[::2, ::2].astype(np.int16)-(92, 92, 92)), axis=2) <= 15
+            bottoms = [c for c in components(gray) if 10 <= c[2] <= 90 and c[4] > .2*c[2]*c[3]]
+            paired = []
+            for x, y, w, h, area in bodies:
+                if not (10 <= w <= 90 and .4*w < h < .75*w):
+                    continue
+                matches = [(gx, gy, gw, gh, ga) for gx, gy, gw, gh, ga in bottoms
+                           if abs((gx+gw/2)-(x+w/2)) < .1*w
+                           and abs(gw-w) < .15*w and .3*w < gy-y < .65*w
+                           and .4*w < gh < .75*w]
+                if len(matches) == 1:
+                    gx, gy, gw, gh, ga = matches[0]
+                    left = min(x, gx)
+                    paired.append((left, y, max(x+w, gx+gw)-left, gy+gh-y, area+ga))
+            bodies = paired
+        for x, y, w, h, area in bodies:
             if 10 <= w <= 90 and 10 <= h <= 90 and .75 < w/h < 1.3 and area > .23*w*h:
                 coins.append((2*x+w-1, 2*y+h-1, w+h))
     if len(coins) < 64:
@@ -104,9 +143,20 @@ def detect_board(frame, search_region=None):
                     cells = []
                     for cx in actual_x:
                         cell = _labels(pixels[cy-radius:cy+radius+1, cx-radius:cx+radius+1])
-                        counts = np.bincount(cell.ravel(), minlength=5)[1:]
+                        counts = np.bincount(cell.ravel(), minlength=len(COIN_COLORS_RGB)+1)[1:]
                         winner = int(counts.argmax())
-                        if counts[winner] < cell.size*.20 or counts[winner] < counts.sum()*.85:
+                        # Monero's gold rim also casts a few BTC-colored votes,
+                        # especially after downscaling the small orange half.
+                        purity = .80 if tuple(COIN_COLORS_RGB)[winner] == 'XMR' else .85
+                        if tuple(COIN_COLORS_RGB)[winner] == 'YELLOW_SYMBOL':
+                            # The shaded yellow rim also votes for orange XMR.
+                            purity = .80
+                        coverage = .20
+                        if tuple(COIN_COLORS_RGB)[winner] == 'BLUE_GRAY':
+                            # The verified pale body leaves only a small blue
+                            # symbol; its darker outline also votes for DASH.
+                            coverage, purity = .12, .65
+                        if counts[winner] < cell.size*coverage or counts[winner] < counts.sum()*purity:
                             return None
                         cells.append(tuple(COIN_COLORS_RGB)[winner])
                     grid.append(tuple(cells))
