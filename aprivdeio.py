@@ -2,10 +2,12 @@ import json
 import os
 import secrets
 import subprocess
+import threading
 import time
 
 ESTENSIONI_VIDEO = (".mp4", ".avi", ".mkv", ".mov", ".wmv")
 TAG_FILE = "video_tags.json"
+WATCH_SESSION_FILE = "video_watch_session.json"
 VIDEO_PLAYERS = ("vlc.exe", "wmplayer.exe", "potplayer.exe", "mpc-hc64.exe", "mpc-hc.exe")
 # Se True, durante lo skip chiude i player (piu lento ma piu pulito).
 # Se False, lo skip e' immediato e apre direttamente il prossimo video.
@@ -168,13 +170,24 @@ def riproduzione_con_tag_obbligatorio(tutti_video, video_riprodotti, tags_db, ta
             video_corrente = prossimo_video_casuale(tutti_video, video_riprodotti)
             tagged_nel_turno = False
             inizio_video = time.monotonic()
+            session_path = _watch_session_path()
+            stato_salvato = {"salvato": False, "lock": threading.Lock()}
 
             print(f"\nIn riproduzione: {os.path.basename(video_corrente)}")
             print(f"Percorso: {video_corrente}")
             print(
                 "Comandi: [t] aggiungi tag, [s] skip video (solo dopo almeno un tag), [x] chiudi player e torna al menu"
             )
+            salva_sessione_video(video_corrente, time.time(), session_path)
             apri_video(video_corrente)
+            avvia_monitoraggio_chiusura_player(
+                video_corrente,
+                inizio_video,
+                tempo_guardato_db,
+                tempo_guardato_path,
+                session_path=session_path,
+                stato_salvato=stato_salvato,
+            )
 
             while True:
                 cmd = input("Comando: ").strip().lower()
@@ -182,14 +195,24 @@ def riproduzione_con_tag_obbligatorio(tutti_video, video_riprodotti, tags_db, ta
                     cmd, video_corrente, tagged_nel_turno, tags_db, tags_path
                 )
                 if azione == "prossimo_video":
-                    secondi_guardati = max(0, int(time.monotonic() - inizio_video))
-                    aggiungi_tempo_guardato(tempo_guardato_db, video_corrente, secondi_guardati)
-                    salva_tempo_guardato(tempo_guardato_path, tempo_guardato_db)
+                    salva_tempo_video_corrente(
+                        video_corrente,
+                        inizio_video,
+                        tempo_guardato_db,
+                        tempo_guardato_path,
+                        session_path=session_path,
+                        stato_salvato=stato_salvato,
+                    )
                     break
                 if azione == "torna_menu":
-                    secondi_guardati = max(0, int(time.monotonic() - inizio_video))
-                    aggiungi_tempo_guardato(tempo_guardato_db, video_corrente, secondi_guardati)
-                    salva_tempo_guardato(tempo_guardato_path, tempo_guardato_db)
+                    salva_tempo_video_corrente(
+                        video_corrente,
+                        inizio_video,
+                        tempo_guardato_db,
+                        tempo_guardato_path,
+                        session_path=session_path,
+                        stato_salvato=stato_salvato,
+                    )
                     return
 
     except KeyboardInterrupt:
@@ -220,6 +243,8 @@ def riproduzione_discovery(tutti_video, tags_db, tags_path, tempo_guardato_db, t
             video_corrente = secrets.choice(candidati)
             tagged_nel_turno = False
             inizio_video = time.monotonic()
+            session_path = _watch_session_path()
+            stato_salvato = {"salvato": False, "lock": threading.Lock()}
 
             print(f"\nIn discovery: {os.path.basename(video_corrente)}")
             print(f"Rimasti senza tag: {len(candidati)}")
@@ -227,7 +252,16 @@ def riproduzione_discovery(tutti_video, tags_db, tags_path, tempo_guardato_db, t
             print(
                 "Comandi: [t] aggiungi tag, [s] skip video (solo dopo almeno un tag), [x] chiudi player e torna al menu"
             )
+            salva_sessione_video(video_corrente, time.time(), session_path)
             apri_video(video_corrente)
+            avvia_monitoraggio_chiusura_player(
+                video_corrente,
+                inizio_video,
+                tempo_guardato_db,
+                tempo_guardato_path,
+                session_path=session_path,
+                stato_salvato=stato_salvato,
+            )
 
             while True:
                 cmd = input("Comando: ").strip().lower()
@@ -235,14 +269,24 @@ def riproduzione_discovery(tutti_video, tags_db, tags_path, tempo_guardato_db, t
                     cmd, video_corrente, tagged_nel_turno, tags_db, tags_path
                 )
                 if azione == "prossimo_video":
-                    secondi_guardati = max(0, int(time.monotonic() - inizio_video))
-                    aggiungi_tempo_guardato(tempo_guardato_db, video_corrente, secondi_guardati)
-                    salva_tempo_guardato(tempo_guardato_path, tempo_guardato_db)
+                    salva_tempo_video_corrente(
+                        video_corrente,
+                        inizio_video,
+                        tempo_guardato_db,
+                        tempo_guardato_path,
+                        session_path=session_path,
+                        stato_salvato=stato_salvato,
+                    )
                     break
                 if azione == "torna_menu":
-                    secondi_guardati = max(0, int(time.monotonic() - inizio_video))
-                    aggiungi_tempo_guardato(tempo_guardato_db, video_corrente, secondi_guardati)
-                    salva_tempo_guardato(tempo_guardato_path, tempo_guardato_db)
+                    salva_tempo_video_corrente(
+                        video_corrente,
+                        inizio_video,
+                        tempo_guardato_db,
+                        tempo_guardato_path,
+                        session_path=session_path,
+                        stato_salvato=stato_salvato,
+                    )
                     return
 
     except KeyboardInterrupt:
@@ -261,12 +305,23 @@ def riproduci_lista_video(videos, tags_db, tags_path, tempo_guardato_db=None, te
     try:
         for video_corrente in videos:
             inizio_video = time.monotonic()
+            session_path = _watch_session_path()
+            stato_salvato = {"salvato": False, "lock": threading.Lock()}
             print(f"\nIn riproduzione: {os.path.basename(video_corrente)}")
             print(f"Percorso: {video_corrente}")
             print(
                 "Comandi: [t] aggiungi tag, [s] prossimo video, [x] chiudi player e torna al menu"
             )
+            salva_sessione_video(video_corrente, time.time(), session_path)
             apri_video(video_corrente)
+            avvia_monitoraggio_chiusura_player(
+                video_corrente,
+                inizio_video,
+                tempo_guardato_db,
+                tempo_guardato_path,
+                session_path=session_path,
+                stato_salvato=stato_salvato,
+            )
 
             while True:
                 cmd = input("Comando: ").strip().lower()
@@ -277,15 +332,25 @@ def riproduci_lista_video(videos, tags_db, tags_path, tempo_guardato_db=None, te
                     continue
 
                 if cmd == "s":
-                    secondi_guardati = max(0, int(time.monotonic() - inizio_video))
-                    aggiungi_tempo_guardato(tempo_guardato_db, video_corrente, secondi_guardati)
-                    salva_tempo_guardato(tempo_guardato_path, tempo_guardato_db)
+                    salva_tempo_video_corrente(
+                        video_corrente,
+                        inizio_video,
+                        tempo_guardato_db,
+                        tempo_guardato_path,
+                        session_path=session_path,
+                        stato_salvato=stato_salvato,
+                    )
                     break
 
                 if cmd == "x":
-                    secondi_guardati = max(0, int(time.monotonic() - inizio_video))
-                    aggiungi_tempo_guardato(tempo_guardato_db, video_corrente, secondi_guardati)
-                    salva_tempo_guardato(tempo_guardato_path, tempo_guardato_db)
+                    salva_tempo_video_corrente(
+                        video_corrente,
+                        inizio_video,
+                        tempo_guardato_db,
+                        tempo_guardato_path,
+                        session_path=session_path,
+                        stato_salvato=stato_salvato,
+                    )
                     termina_processo_video()
                     return
 
@@ -407,6 +472,115 @@ def salva_tempo_guardato(path_file, tempo_guardato_db):
         json.dump(tempo_guardato_db, f, ensure_ascii=False, indent=2)
 
 
+def _watch_session_path():
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), WATCH_SESSION_FILE)
+
+
+def salva_sessione_video(video_path, started_at, path_file=None):
+    if path_file is None:
+        path_file = _watch_session_path()
+
+    payload = {
+        "video_path": video_path,
+        "started_at": float(started_at),
+    }
+
+    with open(path_file, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+def rimuovi_sessione_video(path_file=None):
+    if path_file is None:
+        path_file = _watch_session_path()
+    if os.path.exists(path_file):
+        try:
+            os.remove(path_file)
+        except OSError:
+            pass
+
+
+def riprendi_tempo_da_sessione_attiva(tempo_guardato_db, session_path=None, stats_path=None):
+    """Aggiunge il tempo già trascorso se il player era stato chiuso in modo anomalo."""
+    if session_path is None:
+        session_path = _watch_session_path()
+    if stats_path is None:
+        stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "video_watch_stats.json")
+
+    if not os.path.exists(session_path):
+        return
+
+    try:
+        with open(session_path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        rimuovi_sessione_video(session_path)
+        return
+
+    video_path = payload.get("video_path") if isinstance(payload, dict) else None
+    started_at = payload.get("started_at") if isinstance(payload, dict) else None
+
+    if not isinstance(video_path, str) or not isinstance(started_at, (int, float)):
+        rimuovi_sessione_video(session_path)
+        return
+
+    secondi_guardati = max(0, int(time.time() - float(started_at)))
+    if secondi_guardati > 0:
+        aggiungi_tempo_guardato(tempo_guardato_db, video_path, secondi_guardati)
+        salva_tempo_guardato(stats_path, tempo_guardato_db)
+
+    rimuovi_sessione_video(session_path)
+
+
+def player_video_attivo():
+    try:
+        output = subprocess.run(
+            ["tasklist", "/FO", "CSV", "/NH"],
+            shell=True,
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout.lower()
+    except OSError:
+        return True
+
+    return any(player.lower() in output for player in VIDEO_PLAYERS)
+
+
+def salva_tempo_video_corrente(video_corrente, inizio_video, tempo_guardato_db, tempo_guardato_path, session_path=None, stato_salvato=None):
+    if stato_salvato is not None:
+        with stato_salvato["lock"]:
+            if stato_salvato["salvato"]:
+                return
+            stato_salvato["salvato"] = True
+
+    secondi_guardati = max(0, int(time.monotonic() - inizio_video))
+    aggiungi_tempo_guardato(tempo_guardato_db, video_corrente, secondi_guardati)
+    salva_tempo_guardato(tempo_guardato_path, tempo_guardato_db)
+
+    if session_path is not None:
+        rimuovi_sessione_video(session_path)
+
+
+def avvia_monitoraggio_chiusura_player(video_corrente, inizio_video, tempo_guardato_db, tempo_guardato_path, session_path=None, stato_salvato=None):
+    def _monitor():
+        while True:
+            if not player_video_attivo():
+                salva_tempo_video_corrente(
+                    video_corrente,
+                    inizio_video,
+                    tempo_guardato_db,
+                    tempo_guardato_path,
+                    session_path=session_path,
+                    stato_salvato=stato_salvato,
+                )
+                return
+            time.sleep(1)
+
+    thread = threading.Thread(target=_monitor, daemon=True)
+    thread.start()
+    return thread
+
+
 def formatta_tempo(secondi):
     minuti, secondi_rimanenti = divmod(int(secondi), 60)
     ore, minuti = divmod(minuti, 60)
@@ -495,8 +669,10 @@ def menu_principale(cartella_video):
 
     tags_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), TAG_FILE)
     watch_stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "video_watch_stats.json")
+    session_path = _watch_session_path()
     tags_db = carica_tags(tags_path)
     tempo_guardato_db = carica_tempo_guardato(watch_stats_path)
+    riprendi_tempo_da_sessione_attiva(tempo_guardato_db, session_path, watch_stats_path)
     video_riprodotti = []
 
     while True:
