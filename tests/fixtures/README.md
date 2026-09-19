@@ -50,6 +50,14 @@ is mocked. Only the supplied result layout is verified, not unseen loss screens.
 The detector embeds a packed mask of the button lettering derived from this
 fixture, so executable builds require no extra image data files.
 
+`drhamster.png` is a game-only crop of the user's 2026-09-19 22:35:57
+screenshot; wallet and browser information are excluded. The dotted board has
+8 columns and 10 rows, 14 colored blocks (including the active green pair at
+row 2, columns 4-5) and two face blocks at row 8/column 8 and row 10/column 7.
+`tests/test_drhamster.py` replays it at 70%, 100% and 120% scale with offsets,
+rejects unknown/clipped/ambiguous boards, and tests planning and mocked control.
+Live keyboard timing and wins are not covered by this fixture.
+
 ```powershell
 python -m unittest discover -s tests -p test_coin2048.py
 python test_coin2048.py --image tests/fixtures/coin2048_result.png

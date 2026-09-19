@@ -57,9 +57,47 @@ game bots, so adding a new mini-game is as easy as dropping a new module in the
 | 6 | 🎮 **CoinMatch** | Match-3 | Adaptive 8x8 detection, seven coin types and scored swaps | ✅ |
 | 7 | 🚀 **Flappy Rocket** | Flappy | Blue cockpit tracking, pipe gaps and vertical-speed control | 🧪 MVP disponibile |
 | 8 | 💥 **Token Blaster** | Shooter | Ship tracking, targeting and predicted collision avoidance | 🧪 Beta disponibile |
+| 9 | 🧩 **Dr. Hamster** | Match-4 | Adaptive 8x10 board, pair placement and verified arrow inputs | 🧪 MVP disponibile |
 
 All games are registered at startup by `game_engine/games/__init__.py` and
 appear automatically in the GUI — no hardcoded game lists.
+
+Dr. Hamster is selectable as **MVP**. It reads the dotted 8x10 grid and the
+orange, blue and green blocks. The supplied September 19 screenshot is tested
+at 70%, 100% and 120% scale and different positions: 14 blocks, including the
+active green pair and two face blocks. It scores reachable pair placements for
+horizontal/vertical runs of at least four, favors clearing face blocks and
+prepares reachable two/three-block lines using colors already on the map.
+Buried gaps do not count as future matches; height and covered holes are penalized.
+It verifies rotations and sideways movement from subsequent images, then spams
+DOWN in bursts of up to four rapid presses. Near landing it sends one press and
+reads the board again; Q and the round deadline are checked between presses.
+Older pair links and post-clear
+cascades are not simulated; each new pair uses a fresh board reading.
+
+This is an offline-tested first version; live wins, keyboard timing, other
+artwork and result dialogs in Dr. Hamster still need validation. It acquires a
+pair only while isolated near the top, requires two consistent reads, and
+suppresses input on unknown/ambiguous images. Start it early in a round with
+the entire grid visible and the game focused. Q or the mouse top-left failsafe
+stops it. Missing control observations stop it after four seconds; an ignored
+rotation/movement is retried once. Timeout is not success. The shared reward
+detector must see a stable dialog before reporting round completion, which is
+not a verified win. No new dependencies are required.
+
+```powershell
+python test_drhamster.py --image tests/fixtures/drhamster.png
+python test_drhamster.py --play
+python -m unittest discover -s tests -p test_drhamster.py -v
+```
+
+`--play` waits four seconds to focus an already started round. Inspection sends
+no keys; `--output debug/drhamster_detection.png` optionally annotates a saved
+image (create the parent directory first). Standalone play saves its last frame
+and reason under `debug/drhamster/`. To use the main routine, configure the
+Dr. Hamster game-icon and Start coordinates in the GUI before enabling it;
+their fallback coordinates have not been calibrated. Existing executables
+must be rebuilt to include the new game.
 
 Flappy Rocket is selectable as **MVP** in the GUI. It locates the gray board,
 recognizes the blue cockpit with nearby orange/gray hull, and pairs red/green

@@ -70,7 +70,7 @@ SECONDARY_BTN = "Secondary.TButton"
 DANGER_BTN = "Danger.TButton"
 
 IN_PROGRESS_GAMES = set()
-EXPERIMENTAL_GAMES = {"tokenblaster": "beta", "flappyrocket": "MVP"}
+EXPERIMENTAL_GAMES = {"tokenblaster": "beta", "flappyrocket": "MVP", "drhamster": "MVP"}
 GAME_DISPLAY_ORDER = [
     "coinclick",
     "coinflip",
@@ -80,6 +80,7 @@ GAME_DISPLAY_ORDER = [
     "coinmatch",
     "flappyrocket",
     "tokenblaster",
+    "drhamster",
 ]
 
 

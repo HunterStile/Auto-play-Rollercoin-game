@@ -14,3 +14,4 @@ from game_engine.games import coinmatch
 from game_engine.games import tokenblaster
 from game_engine.games import coinfisher
 from game_engine.games import flappyrocket
+from game_engine.games import drhamster
