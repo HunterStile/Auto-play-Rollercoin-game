@@ -24,7 +24,7 @@ directly. Configure → **Save** → **Start Bot**. That's it.
 > **[TUTORIAL](TUTORIAL.md)** — it walks you through configuring the buttons
 > and positions from scratch (including the Scroll Down Value explained below).
 
-Everything (GUI, all 8 game bots, automation engine) ships inside the single
+Everything (GUI, all 10 game bots, automation engine) ships inside the single
 `.exe`:
 
 - Config files (`game_config.json`, `Routine_config.py`) are created **next to
@@ -58,9 +58,54 @@ game bots, so adding a new mini-game is as easy as dropping a new module in the
 | 7 | 🚀 **Flappy Rocket** | Flappy | Blue cockpit tracking, pipe gaps and vertical-speed control | 🧪 MVP disponibile |
 | 8 | 💥 **Token Blaster** | Shooter | Ship tracking, targeting and predicted collision avoidance | 🧪 Beta disponibile |
 | 9 | 🧩 **Dr. Hamster** | Match-4 | Adaptive 8x10 board, pair placement and verified arrow inputs | 🧪 MVP disponibile |
+| 10 | **Crypto Hex** | Hex stack puzzle | Adaptive 19-cell board, colored stack reading and verified placement | 🧪 MVP disponibile |
 
 All games are registered at startup by `game_engine/games/__init__.py` and
 appear automatically in the GUI — no hardcoded game lists.
+
+Crypto Hex is selectable as **MVP**. It locates the three tray rims and the
+19-cell hex board, reads red/blue/green stacks from bottom to top, and favors
+placement beside matching exposed colors. Mixed stacks retain their underlying
+colors in the reading. The heuristic prioritizes a combined top run of at least
+ten, following the [firsthand player guide](https://ecency.com/@coderad/rollercoin-minigame-guide-win-conditions-strategies-and-ratings);
+merge direction, cascades and scoring are handled by rereading the observed
+board after each placement rather than a complete game simulation.
+
+```powershell
+python test_cryptohex.py --image tests/fixtures/cryptohex.png --output debug/cryptohex/detection.png
+python test_cryptohex.py --play
+python -m unittest discover -s tests -p test_cryptohex.py -v
+```
+
+Inspection sends no input. `--play` waits four seconds to focus an already
+started round, then drags a tray stack to an empty hex. If the game's controls
+require two clicks, use `--play --input-mode click` in the standalone launcher.
+The GUI routine uses drag by default. Configure Crypto Hex's icon and Start
+positions before enabling it: the fallback coordinates are not calibrated.
+Two consistent reads authorize a move; further input waits for a stable local
+board change (or consumption of a full top run that clears immediately).
+It keeps the verified board geometry, reads replacement piles after every
+placement and chooses new moves using their exposed top colors. A tall mixed pile
+can hide another hex: only that obscured hex is blocked, while the bot keeps
+playing on readable cells. An unconfirmed placement stops without repeating it. Q or the
+mouse top-left failsafe stops play, and held mouse buttons are released even
+on input errors. A four-second lack of progress or 65-second deadline returns
+an unverified result. A recognized empty tray waits for refill until the round
+deadline instead of triggering the four-second detection timeout.
+A stable shared reward dialog indicates completion, not
+a verified win. The routine handles reward collection.
+
+The supplied screenshot is replayed at 70%, 100% and 120% scale with offsets.
+It has a one-chip blue pile and four-chip red pile on the board; the tray has
+three green, three red, and five green under five blue chips. Only this artwork
+and three colors are covered. Severe overlap, tall stacks hiding other stacks,
+additional colors or unfamiliar layouts can stop detection. A live level-one
+win (12,750 points) was observed and confirmed by the user on September 19.
+The real replay covers five placements, replacement trays, merges and the
+brighter CLAIM REWARD dialog. Later levels remain unverified. Standalone play,
+the main GUI routine and the Windows executable save the last frame and stop reason under `debug/cryptohex/`
+(next to the executable for frozen builds). No new dependencies;
+rebuild existing executables to include the game.
 
 Dr. Hamster is selectable as **MVP**. It reads the dotted 8x10 grid and the
 orange, blue and green blocks. The supplied September 19 screenshot is tested

@@ -15,4 +15,5 @@ venv/
 debug/tokenblaster/
 debug/flappyrocket/
 debug/drhamster/
+debug/cryptohex/
 *.ico

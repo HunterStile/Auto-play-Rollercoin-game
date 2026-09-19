@@ -12,17 +12,21 @@ _CLAIM = np.unpackbits(np.frombuffer(bytes.fromhex(
 ), dtype=np.uint8))[:975].reshape(13, 75).astype(bool)
 
 
-def detect_result(frame):
+def detect_result(frame, button_colors=((3, 225, 228),), min_text_iou=.65,
+                  panel_button_aspect=None):
     """Return the unique reward button box, or None. Never clicks it."""
     rgb = frame.convert('RGB')
     pixels = np.asarray(rgb, dtype=np.int16)[::2, ::2]
-    cyan = np.max(np.abs(pixels-(3, 225, 228)), axis=2) < 15
+    cyan = np.zeros(pixels.shape[:2], dtype=bool)
+    for color in button_colors:
+        cyan |= np.max(np.abs(pixels-color), axis=2) < 15
     found = []
     for x, y, w, h, area in components(cyan):
         if not (60 <= w <= 450 and 10 <= h <= 80 and
                 6 < w/h < 7.5 and area > .75*w*h):
             continue
         x, y, w, h = 2*x, 2*y, 2*w, 2*h
+        panel_unit = w/panel_button_aspect if panel_button_aspect else h
         # Verify the surrounding dialog on all four sides. Its changing score
         # and win illustration are intentionally outside these bands.
         bands = ((-.08, -5.1, -.04, 1.8), (1.04, -5.1, 1.08, 1.8),
@@ -30,7 +34,7 @@ def detect_result(frame):
         valid = True
         for left, top, right, bottom in bands:
             box = tuple(round(v) for v in
-                        (x+left*w, y+top*h, x+right*w, y+bottom*h))
+                        (x+left*w, y+top*panel_unit, x+right*w, y+bottom*panel_unit))
             if box[0] < 0 or box[1] < 0 or box[2] > rgb.width or box[3] > rgb.height:
                 valid = False
                 break
@@ -43,6 +47,6 @@ def detect_result(frame):
         button = rgb.crop((x, y, x+w, y+h)).resize((144, 21), Image.Resampling.BILINEAR)
         ink = np.asarray(button, dtype=np.int16)[4:17, 35:110].mean(axis=2) < 100
         # Intersection-over-union rejects blank cyan rectangles and other text.
-        if (ink & _CLAIM).sum() / max(1, (ink | _CLAIM).sum()) >= .65:
+        if (ink & _CLAIM).sum() / max(1, (ink | _CLAIM).sum()) >= min_text_iou:
             found.append((x, y, x+w, y+h))
     return found[0] if len(found) == 1 else None

@@ -1,3 +1,25 @@
+`cryptohex.png` is the user's game-only screenshot from 2026-09-19 22:57:15.
+It contains 19 hex cells: blue x1 at column 2/row 4, red x4 at column 3/row 4
+(one-based columns/rows), and tray piles green x3, red x3, green x5 below blue x5.
+Tests replay at 70%, 100%, 120% scale and translated positions, reject unknown
+colors, missing cells, clipped/ambiguous boards and other games. Strategy and
+mouse control are tested offline, including input cleanup, acknowledgement,
+timeouts and a mocked result panel. These checks do not establish live wins.
+`test_cryptohex_refill.py` also moves the actual tray artwork onto the board in
+synthetic frames. A ten-chip stack used to invalidate the hidden hex above it
+and stop the whole reader. Tests now require continuing around that hex, retaining
+validated coordinates through empty tray slots, reading changed refill colors,
+and making six controller moves across two batches. This is not a live recording.
+
+`cryptohex_live_024.png`, `_026.png`, `_029.png`, `_046.png` are game-only frames
+from an authorized live run on September 19. After three placements a blue x8
+pile covered a grid-validation pixel with its gray antialiased outline; its cap
+also looked like a false blue x1 on the hex above. `_five_stack.png` captures
+a second run where a mixed five-chip pile slightly overlapped the upper empty
+hex. `cryptohex_live_win.png` is the third run's actual YOU WIN / 12,750-point
+dialog. These regressions read new tray colors after each placement, continue
+past the third move, and confirm the brighter reward dialog at different scales.
+
 `flappyrocket.png` is the game-only crop of the screenshot supplied on
 2026-09-19 at 22:16:10. It contains a blue-cabin rocket near (160, 582), smoke,
 HUD text, and one red/green pipe pair around x=592..695. The dark rods extend

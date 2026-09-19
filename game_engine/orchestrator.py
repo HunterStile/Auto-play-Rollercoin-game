@@ -74,12 +74,16 @@ class GameOrchestrator:
                 'start_position': f'{gid_upper}_START',
             }
 
-        return {
+        game_config = {
             'position': get(key_map.get('position', '')),
             'start_position': get(key_map.get('start_position', '')),
             'gain_power_position': self.gain_power_position,
             'difficulty': get('LEVEL_MEMORY', 2) if game_id == 'coinflip' else 1,
         }
+        if game_id == 'cryptohex':
+            # main.py starts the routine with cwd set to the project/exe folder.
+            game_config['diagnostics_dir'] = 'debug/cryptohex'
+        return game_config
 
     def _run_single_game(self, game_id: str) -> bool:
         """Run one game round. Returns True if successful."""

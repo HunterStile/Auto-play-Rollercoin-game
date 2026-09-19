@@ -4,6 +4,38 @@
 
 ---
 
+## Unreleased - Crypto Hex MVP
+
+- Added Crypto Hex to the GUI and executable imports with 19-cell board
+  detection and red, blue and green stacks, including mixed layers.
+- Added matching-color placement, stable reads, drag feedback, Q/failsafe
+  stops and diagnostic screenshots. The standalone launcher also supports
+  two-click placement and read-only annotated inspection.
+- Screenshot regressions cover 70%, 100%, 120% scale and offsets; mouse input
+  is mocked. Live timing, wins, extra colors and heavily occluded piles remain
+  unverified. Configure the game icon and Start coordinates before enabling it.
+
+- Fixed stopping after a batch: a ten-chip pile could obscure another hex and
+  invalidate the entire board reading. Obscured hexes are now blocked individually.
+  Cached geometry is revalidated against the table while tray slots disappear,
+  and empty trays wait for refill. New top colors are read for every next move.
+- Added synthetic first-batch/refill replays, two-batch controller coverage and
+  automatic last-frame diagnostics in executable builds and the main GUI routine.
+- Reproduced the live three-placement stop: a blue pile's gray outline failed
+  one grid-validation pixel. Added local edge evidence and prevented its cap
+  from becoming a phantom pile in the obscured hex above. Five-chip overlap is
+  covered too. Real replay fixtures replace guesswork about the failed board.
+- Observed a live level-one win at 12,750 points after five placements; the user
+  confirmed it. Replacement piles are read after every move. Added recognition
+  of Crypto Hex's brighter result button, with panel and text checks retained.
+
+Validation: all 146 offline tests pass, including 32 Crypto Hex tests for the
+original screenshot, batch/refill regressions and real gameplay/win-dialog replay.
+Later levels remain unverified.
+The screenshot inspector recognizes all five supplied piles and their color layers.
+
+---
+
 ## Version 1.3.0 (Current) - Flappy Rocket and Token Blaster
 **Release Date**: *September 19, 2026*
 
