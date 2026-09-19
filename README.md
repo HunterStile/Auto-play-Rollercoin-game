@@ -114,9 +114,12 @@ active green pair and two face blocks. It scores reachable pair placements for
 horizontal/vertical runs of at least four, favors clearing face blocks and
 prepares reachable two/three-block lines using colors already on the map.
 Buried gaps do not count as future matches; height and covered holes are penalized.
-It verifies rotations and sideways movement from subsequent images, then spams
-DOWN in bursts of up to four rapid presses. Near landing it sends one press and
-reads the board again; Q and the round deadline are checked between presses.
+It verifies rotations and sideways movement from subsequent images, then holds
+DOWN continuously across readings while the aligned pair is more than two rows
+from its planned landing. Within the final two rows it releases the hold and
+uses one short press per reading to limit carryover into the next pair.
+It releases DOWN on unknown readings, repositioning, a result panel, Q, the
+round deadline or any error. Live held-key speed still needs calibration.
 Older pair links and post-clear
 cascades are not simulated; each new pair uses a fresh board reading.
 

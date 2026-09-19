@@ -4,6 +4,19 @@
 
 ---
 
+## Unreleased - Dr. Hamster continuous descent
+
+- Replaced four-press DOWN bursts with one held key across consecutive valid
+  observations, after the active pair reaches the selected column/orientation.
+- Releases the hold within two rows of landing and uses short final steps.
+  Unknown/new pairs, sideways/rotation input, result panels, Q, timeouts and
+  errors release the key, including cleanup after a failsafe exception.
+- Added mocked play-loop coverage for held input during screenshots, landing,
+  new pairs, detection loss, errors and result confirmation. Live drop speed
+  remains to be verified.
+
+---
+
 ## Unreleased - Crypto Hex MVP
 
 - Added Crypto Hex to the GUI and executable imports with 19-cell board

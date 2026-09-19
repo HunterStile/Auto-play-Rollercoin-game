@@ -79,6 +79,9 @@ row 2, columns 4-5) and two face blocks at row 8/column 8 and row 10/column 7.
 `tests/test_drhamster.py` replays it at 70%, 100% and 120% scale with offsets,
 rejects unknown/clipped/ambiguous boards, and tests planning and mocked control.
 Live keyboard timing and wins are not covered by this fixture.
+Mocked play-loop tests also verify continuous DOWN across screenshots while
+aligned, release in the final two rows, and release on a new/unknown pair,
+repositioning, Q, deadlines, exceptions, failsafe and a result-panel candidate.
 
 ```powershell
 python -m unittest discover -s tests -p test_coin2048.py

@@ -1,6 +1,7 @@
 """Offline screenshot, strategy and controller regressions; no real input."""
 from dataclasses import replace
 from pathlib import Path
+from itertools import count
 import unittest
 from unittest.mock import patch
 
@@ -237,43 +238,162 @@ class ControlTests(unittest.TestCase):
             pulse.assert_not_called()
         self.assertFalse(DrHamsterBot({'game_duration': 0}).play())
 
-    def test_aligned_piece_gets_four_rapid_down_presses(self):
+    def test_aligned_piece_keeps_down_held_across_observations(self):
         self.acquire()
         with patch.object(self.bot, '_pulse') as pulse, \
-             patch('game_engine.games.drhamster.time.sleep'), \
+             patch('game_engine.games.drhamster.pyautogui.keyDown') as down, \
+             patch('game_engine.games.drhamster.pyautogui.keyUp') as up, \
              patch('game_engine.games.drhamster.time.monotonic', return_value=1), \
              patch('game_engine.games.drhamster.keyboard.is_pressed', return_value=False):
-            self.bot._drop_burst(5)
-        self.assertEqual(pulse.call_count, 4)
-        self.assertTrue(all(call.args == ('down',) and call.kwargs == {'duration': .012}
-                            for call in pulse.call_args_list))
+            self.assertTrue(self.bot._update_input('down', 5))
+            self.bot._piece = replace(self.piece, row=3)
+            self.assertTrue(self.bot._update_input('down', 5))
+            down.assert_called_once_with('down', _pause=False)
+            up.assert_not_called()
+            pulse.assert_not_called()
+            self.bot._update_input(None, 5)
+            up.assert_called_once_with('down', _pause=False)
 
-    def test_near_landing_uses_one_press_then_observes_again(self):
+    def test_near_landing_releases_hold_then_uses_one_short_press(self):
         self.acquire()
-        self.bot._piece = replace(self.piece, row=self.bot._plan.row-.5)
+        events = []
         with patch.object(self.bot, '_pulse') as pulse, \
-             patch('game_engine.games.drhamster.time.sleep'), \
+             patch('game_engine.games.drhamster.pyautogui.keyDown'), \
+             patch('game_engine.games.drhamster.pyautogui.keyUp', side_effect=lambda *a, **k: events.append('release')), \
              patch('game_engine.games.drhamster.time.monotonic', return_value=1), \
              patch('game_engine.games.drhamster.keyboard.is_pressed', return_value=False):
-            self.bot._drop_burst(5)
-        self.assertEqual(pulse.call_count, 1)
+            pulse.side_effect = lambda *a, **k: events.append('pulse')
+            self.bot._update_input('down', 5)
+            self.bot._piece = replace(self.piece, row=self.bot._plan.row-1.5)
+            self.bot._update_input('down', 5)
+            self.assertEqual(events, ['release', 'pulse'])
+            pulse.assert_called_once_with('down', duration=.012)
 
-    def test_burst_rejects_unaligned_piece_and_stops_for_q_or_deadline(self):
+    def test_hold_rejects_unaligned_piece_and_stops_for_q_or_deadline(self):
         self.acquire()
         with patch.object(self.bot, '_pulse') as pulse, \
+             patch('game_engine.games.drhamster.pyautogui.keyDown') as down, \
              patch('game_engine.games.drhamster.time.monotonic', return_value=1), \
              patch('game_engine.games.drhamster.keyboard.is_pressed', return_value=True):
-            self.bot._drop_burst(5)
-            self.bot._drop_burst(.5)
+            self.bot._update_input('down', 5)
+            self.bot._update_input('down', .5)
             self.bot._plan = replace(self.bot._plan, col=5)
-            self.bot._drop_burst(5)
+            self.bot._update_input('down', 5)
         pulse.assert_not_called()
+        down.assert_not_called()
 
     def test_fast_descent_keeps_tracking_beyond_three_rows(self):
         self.acquire()
         lower = scene(self.grid, replace(self.piece, row=6.2))
         self.assertEqual(self.bot.next_action(lower, .3), 'down')
         self.assertAlmostEqual(self.bot._piece.row, 6.2)
+
+    def test_play_holds_during_capture_and_releases_before_new_pair(self):
+        frame = Image.new('RGB', (1000, 800))
+        grid_after = empty_grid()
+        grid_after[9][3:5] = ['G', 'O']
+        boards = [scene(self.grid, self.piece), scene(self.grid, self.piece),
+                  scene(self.grid, replace(self.piece, row=3)),
+                  scene(self.grid, replace(self.piece, row=8)),
+                  scene(grid_after, replace(self.piece, colors=('B', 'B'))), None]
+        held_at_capture = []
+
+        def capture():
+            held_at_capture.append(self.bot._down_held)
+            if len(held_at_capture) > len(boards):
+                raise RuntimeError('replay complete')
+            return frame
+
+        with patch('game_engine.games.drhamster.pyautogui.screenshot', side_effect=capture), \
+             patch('game_engine.games.drhamster.pyautogui.size', return_value=frame.size), \
+             patch('game_engine.games.drhamster.detect_board', side_effect=boards), \
+             patch('game_engine.games.drhamster.detect_result', return_value=None), \
+             patch('game_engine.games.drhamster.time.monotonic', side_effect=count(0, .05)), \
+             patch('game_engine.games.drhamster.time.sleep'), \
+             patch('game_engine.games.drhamster.keyboard.is_pressed', return_value=False), \
+             patch('game_engine.games.drhamster.pyautogui.keyDown') as down, \
+             patch('game_engine.games.drhamster.pyautogui.keyUp') as up:
+            self.assertFalse(self.bot.play())
+        self.assertEqual(held_at_capture, [False, False, True, True, False, False, False])
+        self.assertEqual(down.call_count, 2)  # One continuous hold, one landing pulse.
+        self.assertEqual(up.call_count, 2)
+
+    def test_every_stop_or_alignment_loss_releases_an_existing_hold(self):
+        for reason in ('q', 'deadline', 'unknown', 'sideways', 'unaligned', 'pending'):
+            with self.subTest(reason=reason):
+                self.bot = DrHamsterBot()
+                self.acquire()
+                events = []
+                with patch('game_engine.games.drhamster.pyautogui.keyDown') as down, \
+                     patch('game_engine.games.drhamster.pyautogui.keyUp', side_effect=lambda *a, **k: events.append('up')), \
+                     patch('game_engine.games.drhamster.time.monotonic', return_value=1), \
+                     patch('game_engine.games.drhamster.keyboard.is_pressed', return_value=False) as stop, \
+                     patch.object(self.bot, '_pulse', side_effect=lambda *a, **k: events.append('pulse')):
+                    self.bot._update_input('down', 5)
+                    action, deadline = 'down', 5
+                    if reason == 'q':
+                        stop.return_value = True
+                    elif reason == 'deadline':
+                        deadline = .5
+                    elif reason == 'unknown':
+                        action = self.bot.next_action(None, 1)
+                    elif reason == 'sideways':
+                        action = 'right'
+                    elif reason == 'unaligned':
+                        self.bot._plan = replace(self.bot._plan, col=5)
+                    elif reason == 'pending':
+                        self.bot._pending = ('right', self.piece, 1)
+                    self.bot._update_input(action, deadline)
+                    self.assertFalse(self.bot._down_held)
+                    self.assertEqual(events, ['up', 'pulse'] if reason == 'sideways' else ['up'])
+                    down.assert_called_once_with('down', _pause=False)
+
+    def test_capture_failure_releases_held_key_even_on_failsafe(self):
+        frame = Image.new('RGB', (1000, 800))
+        for error in (RuntimeError('capture failed'), pyautogui.FailSafeException()):
+            with self.subTest(error=type(error).__name__):
+                self.bot = DrHamsterBot()
+                before = pyautogui.FAILSAFE
+                with patch('game_engine.games.drhamster.pyautogui.screenshot', side_effect=[frame, frame, error]), \
+                     patch('game_engine.games.drhamster.pyautogui.size', return_value=frame.size), \
+                     patch('game_engine.games.drhamster.detect_board', return_value=scene(self.grid, self.piece)), \
+                     patch('game_engine.games.drhamster.detect_result', return_value=None), \
+                     patch('game_engine.games.drhamster.time.monotonic', side_effect=count(0, .05)), \
+                     patch('game_engine.games.drhamster.time.sleep'), \
+                     patch('game_engine.games.drhamster.keyboard.is_pressed', return_value=False), \
+                     patch('game_engine.games.drhamster.pyautogui.keyDown') as down, \
+                     patch('game_engine.games.drhamster.pyautogui.keyUp') as up:
+                    if isinstance(error, pyautogui.FailSafeException):
+                        with self.assertRaises(pyautogui.FailSafeException):
+                            self.bot.play()
+                    else:
+                        self.assertFalse(self.bot.play())
+                    down.assert_called_once_with('down', _pause=False)
+                    up.assert_called_once_with('down', _pause=False)
+                self.assertFalse(self.bot._down_held)
+                self.assertEqual(pyautogui.FAILSAFE, before)
+
+    def test_result_candidate_releases_hold_before_confirmation(self):
+        frame = Image.new('RGB', (1000, 800))
+        calls = []
+
+        def result(_):
+            calls.append(self.bot._down_held)
+            return None if len(calls) == 1 else (10, 10, 100, 20)
+
+        with patch('game_engine.games.drhamster.pyautogui.screenshot', return_value=frame), \
+             patch('game_engine.games.drhamster.pyautogui.size', return_value=frame.size), \
+             patch('game_engine.games.drhamster.detect_board', return_value=scene(self.grid, self.piece)), \
+             patch('game_engine.games.drhamster.detect_result', side_effect=result), \
+             patch('game_engine.games.drhamster.time.monotonic', side_effect=count(0, .2)), \
+             patch('game_engine.games.drhamster.time.sleep'), \
+             patch('game_engine.games.drhamster.keyboard.is_pressed', return_value=False), \
+             patch('game_engine.games.drhamster.pyautogui.keyDown') as down, \
+             patch('game_engine.games.drhamster.pyautogui.keyUp') as up:
+            self.assertTrue(self.bot.play())
+            down.assert_called_once_with('down', _pause=False)
+            up.assert_called_once_with('down', _pause=False)
+        self.assertEqual(calls, [False, True, False])
 
 
 if __name__ == '__main__':

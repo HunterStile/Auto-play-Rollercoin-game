@@ -25,6 +25,7 @@ class DrHamsterBot(BaseGame):
         self.stop_reason = None
         self.control_error = None
         self._region = None
+        self._down_held = False
         self._reset_tracking()
 
     def _reset_tracking(self):
@@ -115,7 +116,7 @@ class DrHamsterBot(BaseGame):
 
     @staticmethod
     def _pulse(key, duration=None):
-        # Release after a bounded pulse: never carry DOWN across a lost read.
+        # Bounded rotation/sideways input, or the final step near landing.
         try:
             pyautogui.keyDown(key, _pause=False)
             time.sleep(duration if duration is not None else (.055 if key == 'down' else .035))
@@ -129,25 +130,49 @@ class DrHamsterBot(BaseGame):
             finally:
                 pyautogui.FAILSAFE = failsafe
 
-    def _drop_burst(self, deadline):
-        """Spam DOWN only after observed alignment, then read the board again.
-
-        Far from landing use up to four fast presses. Reserve the final cell
-        for a single press and a new screenshot to limit input at piece spawn.
-        """
-        if (self._piece is None or self._plan is None or self._pending is not None
-                or self._piece.col != self._plan.col
-                or self._piece.orientation != self._plan.orientation):
+    def _set_down(self, held):
+        """Keep one keyDown across valid observations; cleanup bypasses failsafe."""
+        if held == self._down_held:
             return
-        distance = self._plan.row-self._piece.row
-        presses = min(4, max(1, math.floor(distance)-1))
-        for _ in range(presses):
-            if time.monotonic() >= deadline or keyboard.is_pressed('q'):
-                break
+        if held:
+            # Mark first so play()'s finally can release even if input raises.
+            self._down_held = True
+            pyautogui.keyDown('down', _pause=False)
+        else:
+            failsafe = pyautogui.FAILSAFE
+            try:
+                pyautogui.FAILSAFE = False
+                pyautogui.keyUp('down', _pause=False)
+                self._down_held = False
+            finally:
+                pyautogui.FAILSAFE = failsafe
+
+    def _update_input(self, action, deadline):
+        """Hold DOWN on aligned descent; release for uncertainty or other input."""
+        if action is None or time.monotonic() >= deadline or keyboard.is_pressed('q'):
+            self._set_down(False)
+            return False
+        if action != 'down':
+            self._set_down(False)
+            self._pulse(action)
+            return True
+        aligned = (self._piece is not None and self._plan is not None
+                   and self._pending is None and self._piece.col == self._plan.col
+                   and self._piece.orientation == self._plan.orientation)
+        if not aligned:
+            self._set_down(False)
+            return False
+        if self._plan.row-self._piece.row > 2:
+            self._set_down(True)
+        else:
+            # Reserve the final two rows for observed single steps. A held key
+            # must not intentionally carry over a lock/clear into the next pair.
+            self._set_down(False)
             self._pulse('down', duration=.012)
-            time.sleep(.008)
+        return True
 
     def play(self):
+        self._set_down(False)
         self._reset_tracking()
         self._region = None
         self.control_error = None
@@ -171,6 +196,7 @@ class DrHamsterBot(BaseGame):
                     break
                 result = detect_result(frame) if self._region is not None else None
                 if result:
+                    self._set_down(False)
                     signature = (frame.size, result)
                     if signature != result_candidate:
                         result_candidate, result_since = signature, now
@@ -188,11 +214,7 @@ class DrHamsterBot(BaseGame):
                 # Include analysis time in the deadline; do not send a late key.
                 if time.monotonic()-started >= self.game_duration:
                     break
-                if action:
-                    if action == 'down':
-                        self._drop_burst(started+self.game_duration)
-                    else:
-                        self._pulse(action)
+                if self._update_input(action, started+self.game_duration):
                     last_progress = time.monotonic()
                 elif now-last_progress > 4:
                     self.stop_reason = 'griglia o coppia attiva non riconosciuta per 4 secondi'
@@ -206,7 +228,8 @@ class DrHamsterBot(BaseGame):
             self.stop_reason = 'errore: '+str(exc)
             return False
         finally:
-            # _pulse releases its key even when interrupted or an input fails.
+            # Covers Q, timeout, screen/analysis errors, failsafe and results.
+            self._set_down(False)
             print('END Dr. Hamster: '+self.stop_reason)
             diagnostics = self.config.get('diagnostics_dir')
             if diagnostics and last_frame is not None:
