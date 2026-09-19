@@ -55,11 +55,38 @@ game bots, so adding a new mini-game is as easy as dropping a new module in the
 | 4 | 🐹 **Hamster Climber** | Reaction | Green-bar detection + spacebar jumps | ✅ |
 | 5 | 🪝 **Coin Fisher** | Aiming | Adaptive board detection, individual coin centers and trajectory scoring | ✅ |
 | 6 | 🎮 **CoinMatch** | Match-3 | Adaptive 8x8 detection, seven coin types and scored swaps | ✅ |
-| 7 | 🚀 **Flappy Rocket** | Flappy | Rocket tracking + obstacle gap detection | 🚧 In lavorazione |
+| 7 | 🚀 **Flappy Rocket** | Flappy | Blue cockpit tracking, pipe gaps and vertical-speed control | 🧪 MVP disponibile |
 | 8 | 💥 **Token Blaster** | Shooter | Ship tracking, targeting and predicted collision avoidance | 🧪 Beta disponibile |
 
 All games are registered at startup by `game_engine/games/__init__.py` and
 appear automatically in the GUI — no hardcoded game lists.
+
+Flappy Rocket is selectable as **MVP** in the GUI. It locates the gray board,
+recognizes the blue cockpit with nearby orange/gray hull, and pairs red/green
+pipes. Spacebar pulses aim at the next gap, accounting for rocket size and
+vertical velocity; without pipes it maintains mid-board altitude. The supplied
+screenshot is tested at 70%, 100% and 120% scale and different screen positions.
+The user reported a live win without errors on September 19, 2026. This first
+version assumes the supplied artwork and approximate rocket size; additional
+rotations and later levels still need validation and may need timing calibration.
+Keep the game visible and focused. Unknown readings suppress input and stop
+after three seconds. Q or the mouse top-left failsafe stops the standalone run.
+A stable cyan panel indicates round end, not a verified win; its detection is
+tested synthetically. Timeout returns an unverified result. Reward collection
+remains with the routine's configured click. Rebuild existing executables to
+include this MVP.
+
+```powershell
+python test_flappyrocket.py --image tests/fixtures/flappyrocket.png
+python test_flappyrocket.py --play
+python -m unittest discover -s tests -p test_flappyrocket.py -v
+```
+
+`--play` waits four seconds to focus an already started game. Without `--play`,
+the launcher only inspects a screenshot; `--output detection.png` saves boxes
+and the gap target. `test_flappy_scanner.py` uses the same inspector and options.
+On an unverified stop, the standalone run saves its last frame and reason to
+`debug/flappyrocket/last_failure.png` and `last_failure.txt` (Git-ignored).
 
 Token Blaster recognizes the board, animated ship, green/orange enemies and
 yellow and pale projectile candidates, including the muted colors of the supplied video.

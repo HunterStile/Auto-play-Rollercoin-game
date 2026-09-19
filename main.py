@@ -69,8 +69,8 @@ ACCENT_BTN = "Accent.TButton"
 SECONDARY_BTN = "Secondary.TButton"
 DANGER_BTN = "Danger.TButton"
 
-IN_PROGRESS_GAMES = {"flappyrocket"}
-EXPERIMENTAL_GAMES = {"tokenblaster": "beta"}
+IN_PROGRESS_GAMES = set()
+EXPERIMENTAL_GAMES = {"tokenblaster": "beta", "flappyrocket": "MVP"}
 GAME_DISPLAY_ORDER = [
     "coinclick",
     "coinflip",

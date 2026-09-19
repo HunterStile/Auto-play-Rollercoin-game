@@ -4,16 +4,34 @@
 
 ---
 
-## Unreleased
+## Version 1.3.0 (Current) - Flappy Rocket and Token Blaster
+**Release Date**: *September 19, 2026*
+
+- Flappy Rocket is now selectable in the GUI as MVP. Automatic gray-board,
+  blue-cockpit and red/green pipe detection replaces fixed scan coordinates.
+  Velocity-aware space pulses target the next gap and maintain altitude before
+  the first pipe. Includes read-only screenshot inspection, annotated output,
+  Q/failsafe stop and local failure diagnostics. A live win without errors was
+  reported by the user on September 19; later levels remain unverified.
 
 - Token Blaster is now selectable in the main GUI as beta, using the existing
   configured game order, icon/Start positions and reward/navigation routine.
   Includes ship tracking, target retention and predictive collision avoidance.
   One live win has been reported; later levels and automatic result recognition
-  still need validation. Flappy Rocket remains in development.
+  still need validation.
 - Routine messages distinguish unverified results from confirmed completions.
+- Updated application and Windows executable version metadata to 1.3.0.
 
-## Version 1.2.0 (Current) - Higher levels and reliable round completion
+Validation: all 86 offline regression tests passed, including 19 Flappy Rocket
+tests for screenshot scaling/translation, gap selection, vertical motion,
+cooldown, missing detections and synthetic end panels. End-panel recognition
+does not distinguish a win from a loss.
+
+Full release notes: [1.3.0](release-notes/1.3.0.md).
+
+---
+
+## Version 1.2.0 - Higher levels and reliable round completion
 **Release Date**: *September 11, 2026*
 
 - Coin Match: supports seven coin types through the supplied final-level boards,

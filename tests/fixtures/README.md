@@ -1,3 +1,13 @@
+`flappyrocket.png` is the game-only crop of the screenshot supplied on
+2026-09-19 at 22:16:10. It contains a blue-cabin rocket near (160, 582), smoke,
+HUD text, and one red/green pipe pair around x=592..695. The dark rods extend
+the pipe ends; tests check a conservative gap around y=95..497. Replay covers
+70%, 100%, 120% scale and translation, smoke/HUD rejection, missing sprites,
+incomplete pipes and ambiguous boards. Mocked control checks velocity, cooldown,
+active-pipe selection, unknown frames, stop/timeout and synthetic end panels.
+These tests do not establish live wins or calibrated jump physics.
+Run `python -m unittest discover -s tests -p test_flappyrocket.py -v`.
+
 `tokenblaster_level1.png` is the game-only crop supplied on 2026-09-11 at
 22:24:28. It contains 27 enemies (7 green, 20 orange), one yellow projectile
 and the player ship. Offline tests cover zoom/translation, target selection,

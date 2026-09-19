@@ -1,348 +1,132 @@
-"""
-Flappy Rocket Game Bot v2.
-
-Flappy Bird clone: press space/click to fly up, navigate through obstacles.
-
-v2 improvements:
-- Tracks the actual rocket position (searches for bright pixel clusters)
-- Scans ahead of the rocket, not from region center
-- Stricter obstacle detection to reduce false positives
-- Smart jump: only when obstacle is in rocket's path
-- Adaptive cooldown
-"""
-
-import pyautogui
+"""Flappy Rocket MVP: one-frame vision and velocity-aware spacebar pulses."""
 import time
-from typing import Tuple, Optional, List
+from pathlib import Path
+
+import keyboard
+import pyautogui
 
 from game_engine.base import BaseGame
 from game_engine.registry import register_game
-
-# End-screen detection color (RollerCoin cyan)
-END_SCREEN_COLOR = (3, 225, 228)
-
-# Default scan region (game area)
-DEFAULT_REGION = (400, 100, 800, 700)
-
-# Obstacle colors - pipes/asteroids in Flappy Rocket
-OBSTACLE_COLORS = [
-    (50, 180, 50),    # green pipe
-    (30, 150, 30),    # dark green
-    (60, 190, 60),    # lighter green
-    (80, 170, 40),    # green variant
-    (100, 100, 100),  # grey asteroid
-    (80, 80, 80),     # dark grey
-    (60, 60, 60),     # darker grey
-    (140, 140, 140),  # light grey
-]
-
-# Rocket color range (bright white/silver)
-ROCKET_COLORS = [
-    (220, 220, 240),  # silver/white
-    (200, 200, 220),  # slightly darker
-    (180, 200, 230),  # blueish silver
-]
-
-# Background (space = very dark)
-BACKGROUND_MAX_BRIGHTNESS = 80  # R+G+B max for background
-
-COLOR_TOLERANCE = 25
-OBSTACLE_TOLERANCE = 30
+from game_engine.flappyrocket_vision import inspect_frame, is_end_panel
 
 
 @register_game
 class FlappyRocketBot(BaseGame):
     game_id = 'flappyrocket'
     display_name = 'Flappy Rocket'
-    description = 'Flappy Bird clone: detect obstacles and jump through gaps'
+    description = 'MVP: track the blue cockpit and fly through red/green pipe gaps'
 
     def __init__(self, config=None):
         super().__init__(config)
-        self.region = config.get('scan_region', DEFAULT_REGION) if config else DEFAULT_REGION
-        self.game_duration = 65  # seconds
-        self.jump_cooldown = 0.35  # seconds between jumps
-        self.scan_ahead_min = 60   # min pixels ahead of rocket to scan
-        self.scan_ahead_max = 110  # max pixels ahead
-        self._rocket_history = []  # for position smoothing
+        self.game_duration = self.config.get('game_duration', 65)
+        self.jump_cooldown = self.config.get('jump_cooldown', .18)
+        self.stop_reason = None
+        self.detection_error = None
+        self.detected_region = None
+        self._reset_motion()
 
-    # ── Color utilities ───────────────────────────────────────────────
+    def _reset_motion(self):
+        self._previous = None
+        self._velocity = 0.
+        self._last_jump = float('-inf')
 
-    def _color_match(self, target: Tuple[int, int, int], actual: Tuple[int, int, int],
-                     tolerance: int = COLOR_TOLERANCE) -> bool:
-        return all(abs(t - a) <= tolerance for t, a in zip(target, actual))
+    def inspect(self, frame):
+        """Read-only analysis; all object coordinates are local to region."""
+        state, self.detection_error = inspect_frame(frame, self.config.get('scan_region'))
+        self.detected_region = state['region'] if state else None
+        return state
 
-    def _is_background(self, r: int, g: int, b: int) -> bool:
-        """Check if pixel is background (dark space)."""
-        return (r + g + b) <= BACKGROUND_MAX_BRIGHTNESS
-
-    def _is_rocket_color(self, r: int, g: int, b: int) -> bool:
-        """Check if pixel looks like the rocket (bright white/silver)."""
-        for color in ROCKET_COLORS:
-            if self._color_match(color, (r, g, b), tolerance=30):
-                return True
-        # Also accept any very bright pixel in left area
-        if r > 190 and g > 190 and b > 180:
-            return True
-        return False
-
-    def _is_obstacle(self, r: int, g: int, b: int) -> bool:
-        """Strict obstacle check - only known obstacle colors."""
-        # Skip background
-        if self._is_background(r, g, b):
+    def should_jump(self, state, now):
+        """Aim at the next gap; maintain altitude even before pipes arrive."""
+        _, _, w, h = state['region']
+        rx, ry, rw, rh = state['rocket_box']
+        _, cy = state['rocket']
+        previous = self._previous
+        if previous is not None:
+            dt = now-previous['timestamp']
+            if .015 <= dt <= .4 and previous['region'] == state['region']:
+                measured = (cy-previous['rocket'][1])/dt
+                self._velocity = .35*self._velocity + .65*max(-2*h, min(2*h, measured))
+            else:
+                self._velocity = 0.
+        self._previous = dict(state, timestamp=now)
+        upcoming = [p for p in state['pipes'] if p['right'] >= rx-w*.01]
+        pipe = min(upcoming, key=lambda p: p['left']) if upcoming else None
+        upper = rh/2+h*.035
+        lower = h-rh/2-h*.035
+        if pipe:
+            upper = max(upper, pipe['gap_top']+rh/2+h*.035)
+            lower = min(lower, pipe['gap_bottom']-rh/2-h*.035)
+        target = (upper+lower)/2
+        if upper >= lower or cy <= upper or now-self._last_jump < self.jump_cooldown:
             return False
-        # Skip very bright (rocket, coins, UI)
-        if r > 200 and g > 200 and b > 200:
-            return False
-        # Match known obstacle colors
-        for color in OBSTACLE_COLORS:
-            if self._color_match(color, (r, g, b), tolerance=OBSTACLE_TOLERANCE):
-                return True
-        return False
+        predicted = cy + self._velocity*.16 + .5*h*.9*.16**2
+        emergency = cy > h-rh/2-h*.07 and self._velocity >= 0
+        return emergency or (predicted > target+h*.012 and self._velocity > -h*.12)
 
-    # ── Rocket tracking ───────────────────────────────────────────────
-
-    def _find_rocket(self) -> Optional[Tuple[int, int]]:
-        """
-        Find the rocket position by scanning for bright pixel clusters
-        in the left-center portion of the game area.
-        Returns (x, y) or None if not found.
-        """
-        rx, ry, rw, rh = self.region
-
-        # Scan left portion of game area (rocket is on the left side)
-        scan_left = rx + 20
-        scan_top = ry + 30
-        scan_width = rw // 3  # left third
-        scan_height = rh - 60
-
+    def play(self):
+        """Play an already started, focused round; timeout is not a win."""
+        self._reset_motion()
+        self.detected_region = None
+        started = time.monotonic()
+        missing_since = None
+        panel_since = None
+        last_region = None
+        last_frame = None
+        self.stop_reason = 'tempo massimo raggiunto; risultato non verificato'
+        print('START Flappy Rocket MVP - Q per fermare')
         try:
-            pic = pyautogui.screenshot(region=(scan_left, scan_top, scan_width, scan_height))
-        except Exception:
-            return None
-
-        w, h = pic.size
-        rocket_pixels = []
-
-        # Coarse scan for bright pixels
-        for x in range(0, w, 6):
-            for y in range(0, h, 6):
-                try:
-                    r, g, b = pic.getpixel((x, y))
-                    if self._is_rocket_color(r, g, b):
-                        rocket_pixels.append((scan_left + x, scan_top + y))
-                except Exception:
-                    pass
-
-        if not rocket_pixels:
-            return None
-
-        # Find the cluster center (rocket should be a tight cluster)
-        avg_x = sum(p[0] for p in rocket_pixels) / len(rocket_pixels)
-        avg_y = sum(p[1] for p in rocket_pixels) / len(rocket_pixels)
-
-        # Smooth with history
-        self._rocket_history.append((avg_x, avg_y))
-        if len(self._rocket_history) > 5:
-            self._rocket_history.pop(0)
-
-        smooth_x = sum(p[0] for p in self._rocket_history) / len(self._rocket_history)
-        smooth_y = sum(p[1] for p in self._rocket_history) / len(self._rocket_history)
-
-        return (int(smooth_x), int(smooth_y))
-
-    # ── Obstacle scanning ─────────────────────────────────────────────
-
-    def _scan_column(self, scan_x: int) -> Tuple[bool, Optional[int], Optional[int]]:
-        """
-        Scan a vertical column at scan_x for obstacles.
-        Returns: (has_obstacle, gap_center_y, obstacle_top_y)
-        """
-        rx, ry, rw, rh = self.region
-        scan_y_start = ry + 15
-        scan_height = rh - 30
-        col_width = 8
-
-        try:
-            pic = pyautogui.screenshot(region=(scan_x - col_width // 2, scan_y_start,
-                                                col_width, scan_height))
-        except Exception:
-            return (False, None, None)
-
-        w, h = pic.size
-        rows = []
-
-        for y in range(0, h, 4):
-            obs_count = 0
-            total = 0
-            for x in range(0, w, 2):
-                try:
-                    r, g, b = pic.getpixel((x, y))
-                    total += 1
-                    if self._is_obstacle(r, g, b):
-                        obs_count += 1
-                except Exception:
-                    pass
-            rows.append({
-                'y': scan_y_start + y,
-                'is_obs': obs_count >= max(2, total // 2),  # majority
-            })
-
-        # Find obstacle segments and gaps
-        obstacles = []  # list of (top_y, bottom_y)
-        in_obs = False
-        obs_start = 0
-
-        for row in rows:
-            if row['is_obs'] and not in_obs:
-                in_obs = True
-                obs_start = row['y']
-            elif not row['is_obs'] and in_obs:
-                obstacles.append((obs_start, row['y']))
-                in_obs = False
-
-        if in_obs:
-            obstacles.append((obs_start, rows[-1]['y']))
-
-        if not obstacles:
-            return (False, None, None)
-
-        # Find gaps between obstacles
-        gaps = []
-        for i in range(len(obstacles) - 1):
-            gap_top = obstacles[i][1]
-            gap_bottom = obstacles[i + 1][0]
-            gap_size = gap_bottom - gap_top
-            if gap_size > 30:  # significant gap
-                gap_center = (gap_top + gap_bottom) // 2
-                gaps.append((gap_center, gap_size))
-
-        # Also check gap above first obstacle and below last
-        if obstacles[0][0] - scan_y_start > 30:
-            gaps.append(((scan_y_start + obstacles[0][0]) // 2,
-                        obstacles[0][0] - scan_y_start))
-        if (scan_y_start + scan_height) - obstacles[-1][1] > 30:
-            gaps.append(((obstacles[-1][1] + scan_y_start + scan_height) // 2,
-                        (scan_y_start + scan_height) - obstacles[-1][1]))
-
-        if gaps:
-            # Return largest gap
-            best_gap = max(gaps, key=lambda g: g[1])
-            return (True, best_gap[0], obstacles[0][0])
-
-        return (True, None, obstacles[0][0])
-
-    # ── Jump decision ─────────────────────────────────────────────────
-
-    def _should_jump(self, rocket_y: int, gap_center: Optional[int],
-                     obstacle_top: Optional[int]) -> bool:
-        """
-        Decide whether to jump based on rocket position relative to obstacles.
-        """
-        if gap_center is not None:
-            # There's a gap - jump if rocket is below the gap center
-            # (rocket is falling, needs to go up to reach the gap)
-            margin = 30  # pixels of tolerance
-            if rocket_y > gap_center - margin:
-                return True
-
-        if obstacle_top is not None:
-            # No clear gap but obstacles present - jump if obstacle is close
-            # and rocket is near the top of the obstacle
-            if rocket_y > obstacle_top - 20:
-                return True
-
-        return False
-
-    # ── End screen detection ──────────────────────────────────────────
-
-    def _is_end_screen(self) -> bool:
-        """Check if the game has ended (cyan end screen)."""
-        rx, ry, rw, rh = self.region
-        check_points = [
-            (rx + rw // 2, ry + rh // 2),
-            (rx + rw // 2, ry + rh - 60),
-            (rx + rw // 4, ry + rh - 40),
-            (rx + 3 * rw // 4, ry + rh - 40),
-        ]
-        matches = 0
-        for px, py in check_points:
-            try:
-                r, g, b = pyautogui.pixel(px, py)
-                if (abs(r - END_SCREEN_COLOR[0]) <= 5 and
-                    abs(g - END_SCREEN_COLOR[1]) <= 5 and
-                    abs(b - END_SCREEN_COLOR[2]) <= 5):
-                    matches += 1
-            except Exception:
-                pass
-        return matches >= 2
-
-    # ── Main play loop ────────────────────────────────────────────────
-
-    def play(self) -> bool:
-        """Play one round of Flappy Rocket."""
-        print("START Flappy Rocket v2")
-        start_time = time.time()
-        last_jump = 0
-        self._rocket_history = []
-        no_rocket_count = 0
-
-        try:
-            # Initial jump to get started
-            pyautogui.press('space')
-            time.sleep(0.5)
-
-            while time.time() - start_time < self.game_duration:
-                if self._is_end_screen():
-                    print("  End screen detected - game complete!")
+            while time.monotonic()-started < self.game_duration:
+                if keyboard.is_pressed('q'):
+                    self.stop_reason = 'arresto richiesto con Q'
                     break
-
-                now = time.time()
-
-                # Find rocket
-                rocket_pos = self._find_rocket()
-                if rocket_pos is None:
-                    no_rocket_count += 1
-                    if no_rocket_count > 30:  # ~3 seconds without rocket
-                        print("  Rocket not found for too long - ending")
-                        break
-                    time.sleep(0.1)
+                frame = pyautogui.screenshot()
+                last_frame = frame
+                now = time.monotonic()
+                if tuple(pyautogui.size()) != frame.size:
+                    self.stop_reason = 'dimensioni screenshot/schermo incompatibili'
+                    break
+                if is_end_panel(frame, last_region):
+                    if panel_since is None:
+                        panel_since = now
+                    if now-panel_since >= .25:
+                        self.stop_reason = 'pannello finale rilevato; vittoria non verificata'
+                        return True
+                    time.sleep(.04)
                     continue
-                no_rocket_count = 0
-
-                rocket_x, rocket_y = rocket_pos
-
-                # Determine scan position (ahead of rocket)
-                scan_x = rocket_x + self.scan_ahead_min
-
-                # If rocket is visible and we have recent position,
-                # scan even further ahead if we just jumped
-                if now - last_jump < 0.5:
-                    scan_x = rocket_x + self.scan_ahead_max
-
-                rx, ry, rw, rh = self.region
-                if scan_x > rx + rw - 20:
-                    scan_x = rx + rw - 30
-
-                # Scan
-                has_obs, gap_center, obstacle_top = self._scan_column(scan_x)
-
-                # Decide
-                if has_obs and (now - last_jump) > self.jump_cooldown:
-                    if self._should_jump(rocket_y, gap_center, obstacle_top):
-                        pyautogui.press('space')
-                        last_jump = now
-                        gap_str = f"gap@{gap_center}" if gap_center else "no-gap"
-                        print(f"  JUMP! rocket_y={rocket_y} {gap_str} obs_top={obstacle_top}")
-
-                # Adaptive sleep: faster when obstacles are close
-                if has_obs:
-                    time.sleep(0.04)
-                else:
-                    time.sleep(0.08)
-
-            print("END Flappy Rocket v2")
-            return True
-
-        except Exception as e:
-            print(f"  Error in Flappy Rocket: {e}")
+                panel_since = None
+                state = self.inspect(frame)
+                if state is None:
+                    self._previous = None
+                    self._velocity = 0.
+                    if missing_since is None:
+                        missing_since = now
+                    if now-missing_since >= 3:
+                        self.stop_reason = 'riconoscimento assente: '+self.detection_error
+                        break
+                    time.sleep(.04)
+                    continue
+                missing_since = None
+                last_region = state['region']
+                if self.should_jump(state, now):
+                    pyautogui.press('space', _pause=False)
+                    self._last_jump = now
+                time.sleep(.015)
             return False
+        except pyautogui.FailSafeException:
+            self.stop_reason = 'arresto richiesto con failsafe del mouse'
+            return False
+        except Exception as exc:
+            self.stop_reason = f'errore: {type(exc).__name__}: {exc}'
+            return False
+        finally:
+            print('END Flappy Rocket - '+self.stop_reason)
+            directory = self.config.get('diagnostics_dir')
+            if directory and last_frame is not None and not self.stop_reason.startswith(('arresto', 'pannello')):
+                try:
+                    path = Path(directory)
+                    path.mkdir(parents=True, exist_ok=True)
+                    last_frame.save(path/'last_failure.png')
+                    (path/'last_failure.txt').write_text(self.stop_reason, encoding='utf-8')
+                except OSError as exc:
+                    print(f'Diagnostica non salvata: {exc}')
