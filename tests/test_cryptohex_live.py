@@ -1,5 +1,6 @@
 """Regression from the authorized real round: third merge stopped detection."""
 from pathlib import Path
+from dataclasses import replace
 import unittest
 from unittest.mock import patch
 
@@ -7,11 +8,95 @@ from PIL import Image, ImageDraw
 
 from game_engine.cryptohex_vision import detect_board, HIDDEN
 from game_engine.games.cryptohex import CryptoHexBot, detect_result
+from game_engine.orchestrator import GameOrchestrator
+from game_engine.registry import GameRegistry
 
 FIXTURES = Path(__file__).parent/'fixtures'
 
 
 class LiveReplayTests(unittest.TestCase):
+    def test_main_round_with_touching_piles_keeps_playing(self):
+        with Image.open(FIXTURES/'cryptohex_main_stall.png') as original:
+            for scale in (.7, 1, 1.2):
+                for offset in ((0, 0), (470, 203)):
+                    with self.subTest(scale=scale, offset=offset):
+                        resized = original.resize(tuple(round(v*scale) for v in original.size))
+                        frame = Image.new('RGB', (resized.width+offset[0], resized.height+offset[1]))
+                        frame.paste(resized, offset)
+                        board = detect_board(frame)
+                        self.assertIsNotNone(board, 'Touching piles must not stop the main round')
+                        expected = [()]*19
+                        expected[4] = expected[13] = HIDDEN
+                        expected[5], expected[14], expected[15] = ('G',)*8, ('B',)*9, ('B', 'R', 'R')
+                        self.assertEqual(board.stacks, tuple(expected))
+                        self.assertEqual(board.trays, (('R',)*3, ('R',)*3, ('G',)*2))
+                        self.assertEqual(detect_board(frame, previous=board), board)
+                        config = GameOrchestrator({})._get_game_config('cryptohex')
+                        bot = GameRegistry.get('cryptohex')(config)
+                        self.assertIsNone(bot.next_action(board, 0))
+                        move = bot.next_action(board, .2)
+                        self.assertIsNotNone(move)
+                        self.assertEqual(move.source, 2)
+                        self.assertFalse(board.stacks[move.target])
+
+    def test_main_orchestrator_plays_the_stalled_frame(self):
+        with Image.open(FIXTURES/'cryptohex_main_stall.png') as image:
+            frame = image.convert('RGB')
+        orchestrator = GameOrchestrator({'CRYPTOHEX_POSITION': (10, 10),
+                                        'CRYPTOHEX_START': (20, 20)})
+        config = orchestrator._get_game_config('cryptohex')
+        config['diagnostics_dir'] = ''
+        with patch.object(orchestrator, '_get_game_config', return_value=config), \
+                patch('game_engine.orchestrator.wait_game_ready', return_value=True), \
+                patch('game_engine.orchestrator.click'), \
+                patch('game_engine.orchestrator.sleep'), \
+                patch('game_engine.orchestrator.pyautogui.press'), \
+                patch('game_engine.orchestrator.pyautogui.scroll'), \
+                patch('game_engine.games.cryptohex.pyautogui.screenshot', return_value=frame), \
+                patch('game_engine.games.cryptohex.pyautogui.size', return_value=frame.size), \
+                patch('game_engine.games.cryptohex.time.monotonic', side_effect=(i*.2 for i in range(100))), \
+                patch('game_engine.games.cryptohex.time.sleep'), \
+                patch.object(CryptoHexBot, '_place') as place, \
+                patch('game_engine.games.cryptohex.keyboard.is_pressed',
+                      side_effect=lambda key: bool(place.call_count)):
+            orchestrator._run_single_game('cryptohex')
+            place.assert_called_once()
+            board, move = place.call_args.args
+            self.assertEqual(move.source, 2)
+            self.assertEqual(board.stacks[14], ('B',)*9)
+            self.assertFalse(board.stacks[move.target])
+
+    def test_nearly_complete_stacks_remain_readable_and_allow_next_move(self):
+        with Image.open(FIXTURES/'cryptohex_tall_stacks.png') as original:
+            for scale in (.7, 1, 1.2):
+                for offset in ((0, 0), (173, 89)):
+                    with self.subTest(scale=scale, offset=offset):
+                        resized = original.resize(tuple(round(v*scale) for v in original.size))
+                        frame = Image.new('RGB', (resized.width+offset[0], resized.height+offset[1]))
+                        frame.paste(resized, offset)
+                        board = detect_board(frame)
+                        self.assertIsNotNone(board, 'Tall stacks must not stop detection')
+                        expected = [()]*19
+                        expected[4], expected[5], expected[14] = HIDDEN, ('B',)*9, ('G',)*6
+                        self.assertEqual(board.stacks, tuple(expected))
+                        self.assertEqual(board.trays, (('R',)*2, ('R',)*5, ('B',)*2))
+                        self.assertEqual(detect_board(frame, previous=board), board)
+                        # Last pile of the previous batch grew blue from 7 to 9.
+                        # The stable screenshot must confirm that merge and
+                        # authorize another move from the newly refilled tray.
+                        before = list(expected)
+                        before[4], before[5] = (), ('B',)*7
+                        before = replace(board, stacks=tuple(before), trays=(('B',)*2, (), ()))
+                        bot = CryptoHexBot()
+                        bot.next_action(before, 0)
+                        self.assertIsNotNone(bot.next_action(before, .2))
+                        self.assertIsNone(bot.next_action(board, .4))
+                        move = bot.next_action(board, .6)
+                        self.assertIsNotNone(move, 'A merge below ten chips must allow another move')
+                        self.assertEqual(move.source, 2)
+                        self.assertFalse(board.stacks[move.target])
+                        self.assertIsNone(bot.control_error)
+
     def test_actual_dialog_finishes_round_without_another_drag(self):
         with Image.open(FIXTURES/'cryptohex_live_024.png') as image:
             playing = image.convert('RGB')

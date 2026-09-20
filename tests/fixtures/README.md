@@ -20,6 +20,23 @@ hex. `cryptohex_live_win.png` is the third run's actual YOU WIN / 12,750-point
 dialog. These regressions read new tray colors after each placement, continue
 past the third move, and confirm the brighter reward dialog at different scales.
 
+`cryptohex_tall_stacks.png` is the user's screenshot from 2026-09-20 00:19:19.
+It has blue x9 at cell 5, green x6 at cell 14, and tray piles red x2, red x5,
+blue x2. The blue cap's thin reddish outline was counted as another color run,
+invalidating the entire board. At 70% zoom, the green cap's blended edge also
+invalidated the empty cell above it. Replay at 70%, 100%, 120% and translated
+positions verifies the counts, blocks the obscured cell 4, and confirms that
+a pending merge from seven to nine chips permits the next move. Input is mocked;
+this regression does not establish a live win.
+
+`cryptohex_main_stall.png` is the game-only crop of `debug/cryptohex/last_frame.png`
+saved by the main routine on 2026-09-20 at 00:28:26. Green x8 occupies cell 5,
+blue x9 cell 14, and blue x1 under red x2 cell 15. The blue pile's base touches
+the mixed pile's cap, so the central stripe used to join two separate sprites
+and reject both. Tests require cap-shoulder validation to split the piles,
+correct counts at three scales and offsets, and a placement through the same
+orchestrator/play loop used by main. All mouse and keyboard input is mocked.
+
 `flappyrocket.png` is the game-only crop of the screenshot supplied on
 2026-09-19 at 22:16:10. It contains a blue-cabin rocket near (160, 582), smoke,
 HUD text, and one red/green pipe pair around x=592..695. The dark rods extend

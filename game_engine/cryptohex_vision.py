@@ -54,6 +54,19 @@ def _colors(rgb):
     return result
 
 
+def _cap_shoulders(pixels, cx, top, scale, color):
+    """A cap widens from its narrow top to both shoulders 18 pixels below."""
+    for side in (-32, 32):
+        x0, x1 = round(cx+(side-2)*scale), round(cx+(side+2)*scale)
+        narrow = pixels[round(top+2*scale):round(top+6*scale), x0:x1]
+        wide = pixels[round(top+16*scale):round(top+20*scale), x0:x1]
+        if (not narrow.size or not wide.size
+                or (_colors(narrow*1.6) == color).mean() > .2
+                or (_colors(wide*1.6) == color).mean() < .8):
+            return False
+    return True
+
+
 def _stack(pixels, cx, cy, scale, below=()):
     """Read the central stripe; subtract the shaded top face from its top run."""
     height, width = pixels.shape[:2]
@@ -71,7 +84,11 @@ def _stack(pixels, cx, cy, scale, below=()):
         upper = pixels[round(cy-24*scale):round(cy-16*scale),
                        round(cx-15*scale):round(cx+15*scale)]
         explained = _brown(patch) | (_colors(patch) > 0)
-        if upper.size and _brown(upper).mean() > .96 and explained.mean() > .96:
+        # At reduced zoom the blended cap edge occupies a full pixel row.
+        # Allow that rim while still requiring the upper band to be bare table.
+        rim_pixels = max(explained.size*.04, explained.shape[1])
+        if (upper.size and _brown(upper).mean() > .96
+                and np.count_nonzero(~explained) <= rim_pixels):
             return ()
     stripe = np.median(pixels[y0:y1, x0:x1], axis=1)
     labels = _colors(stripe)
@@ -85,7 +102,9 @@ def _stack(pixels, cx, cy, scale, below=()):
         # An unknown sprite must never be treated as an empty destination.
         return None
     end = bottom
-    while end+1 < len(labels) and labels[end+1]:
+    # A lower cap may touch this pile's base. Do not walk into that sprite.
+    base_end = min(len(labels)-1, round(cy+30*scale)-y0-1)
+    while end < base_end and labels[end+1] == labels[bottom]:
         end += 1
     if abs((y0+end+1)-(cy+30*scale)) > 4*scale:
         return None
@@ -97,9 +116,24 @@ def _stack(pixels, cx, cy, scale, below=()):
         while start >= 0 and labels[start] == color:
             start -= 1
         runs.append((color, (cursor-start)/scale))
+        # A separate pile above can touch this cap without a background gap.
+        # A plausible layer count alone is ambiguous; require the cap's
+        # widening shoulders before terminating inside a colored stripe.
+        count = (runs[-1][1]-42)/9.5
+        if (1 <= round(count) <= 15 and abs(count-round(count)) <= .38
+                and _cap_shoulders(pixels, cx, y0+start+1, scale, color)):
+            cursor = start
+            break
         cursor = start
     if cursor < 0:
         return None
+    # The antialiased cap outline can match another chip color (notably
+    # red above a tall blue pile). It is only a few pixels high, whereas
+    # a real top run includes the 42-pixel face plus at least one layer.
+    # Discard only that thin outer rim; the remaining cap/count must still
+    # pass the normal validation below.
+    if len(runs) > 1 and runs[-1][1] <= 6:
+        runs.pop()
     stack = []
     for i, (color, length) in enumerate(runs):
         count = (length-(42 if i == len(runs)-1 else 0))/9.5
