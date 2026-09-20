@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import numpy as np
 from PIL import Image, ImageDraw
 
 from game_engine.games.coinfisher import CoinFisherBot
@@ -33,7 +34,18 @@ class CoinFisherVisionTests(unittest.TestCase):
                     x, y = origin
                     self.assertTrue(all(x < cx < x+831*scale and
                                         y+55*scale < cy < y+520*scale for cx, cy in coins))
-                    self.assertIn(bot._find_best_shot(), coins)
+                    self.assertTrue(bot._launcher_ready)
+                    target = bot._find_best_shot()
+                    rx, ry, rw, rh = bot.region
+                    self.assertTrue(rx < target[0] < rx+rw and ry < target[1] < ry+rh)
+                    # Aim can lie between sprites. The selected full ray must
+                    # actually cross several of the independently read coins.
+                    pivot = bot._launcher_pivot()
+                    ray = np.asarray(target)-pivot
+                    ray /= np.linalg.norm(ray)
+                    offsets = np.asarray(coins)-pivot
+                    across = abs(offsets[:, 0]*ray[1]-offsets[:, 1]*ray[0])
+                    self.assertGreaterEqual(int((across < .028*bot._water_region[2]).sum()), 4)
 
     def test_missing_board_never_produces_fallback_click(self):
         with patch('pyautogui.screenshot', return_value=Image.new('RGB', (1700, 1100))):
@@ -46,7 +58,7 @@ class CoinFisherVisionTests(unittest.TestCase):
             bot = CoinFisherBot({})
             target = bot._find_best_shot()
             self.assertTrue(bot._click_target(target))
-            click.assert_called_once_with(*target)
+            click.assert_called_once_with(*target, _pause=False)
             click.reset_mock()
             for bad in [(-10, 300), (1800, 300), (100, 60), None]:
                 self.assertFalse(bot._click_target(bad))

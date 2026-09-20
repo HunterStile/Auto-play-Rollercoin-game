@@ -5,7 +5,7 @@ from game_engine.games.coinfisher import CoinFisherBot
 
 
 def main():
-    print('Coin Fisher - adaptive board and coin detection')
+    print('Coin Fisher - net return detection and full-path aiming')
     print('Open and start Coin Fisher; keep the entire board visible.')
     print('Focus the game during the countdown. Mouse to top-left aborts.')
     print('Starting in 4 seconds...')

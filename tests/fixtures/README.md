@@ -79,6 +79,10 @@ the frame contains one actual yellow projectile.
 
 `coinfisher.png` is the game-only crop of the screenshot supplied on 2026-09-10.
 It contains 28 visible coins; account details and surrounding browser UI are excluded.
+The rod foot sits on the beach below the water; its loaded gray net is above it.
+The control regressions added on 2026-09-20 remove, translate and rotate that
+net to simulate departure, return, a thin cable and a net still extended near
+the dock. These modified frames are synthetic, not a live recording.
 
 `coin2048_playing.png` and `coin2048_result.png` come from the 2026-09-11
 19:58:32 and 19:59:56 screenshots. The latter is cropped around the win dialog.
@@ -108,11 +112,18 @@ python test_coin2048.py --image tests/fixtures/coin2048_result.png
 Run the offline regression checks from the repository root:
 
 ```powershell
-python -m unittest discover -s tests -p test_coinfisher_vision.py
+python -m unittest discover -s tests -p "test_coinfisher*.py" -v
 ```
 
 The tests replay the board at different positions and scales, and mock all mouse
-input. They verify detection and click bounds, not live projectile physics or wins.
+input. They verify all 28 coins, the docked net at different angles, suppression
+of clicks during travel and before departure is observed, immediate replanning
+on the first ready frame, and the time limit after a slow capture. Geometry
+tests score the full outward/return line from the rod foot, counting each coin
+once; directions between coin centres can catch multiple rows. They do not
+establish live projectile physics, exact collision radii, moving-coin interception
+or wins. The net reach and conservative hit radius are calibrated from the
+available still image, not from a recorded round.
 
 For a manual round, start Coin Fisher and run `python test_coinfisher.py`, then
 focus the game during the four-second countdown. Keep the entire game visible.
@@ -121,6 +132,11 @@ a search hint in `(left, top, width, height)` screen coordinates. A missing,
 clipped or ambiguous board suppresses shots. Screenshot/mouse scale mismatches
 stop the run. Move the mouse to the top-left corner to trigger PyAutoGUI failsafe.
 The end-panel color check is heuristic; it does not certify a win or level 10.
+The controller no longer uses a fixed one-second click cooldown. It observes
+departure and docking before sending another click, scans again for a fresh aim,
+and logs each shot with the predicted number of coins on its path. That number
+is a geometric estimate, not a verified score. A launch that never visibly
+starts stops with `launch not observed`, rather than repeatedly clicking.
 
 
 `coinmatch_level1.png` is the game-only screenshot supplied on 2026-09-10.
