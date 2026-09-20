@@ -61,6 +61,63 @@ class TokenBlasterControlTests(unittest.TestCase):
         self.assertEqual(bot.choose_direction(self.state([(465, 90), (380, 90)])), 'right')
         self.assertEqual(bot.choose_direction(self.state([(370, 90)])), 'left')
 
+    def test_reachable_falling_bonus_takes_priority_over_distant_enemy(self):
+        bot = TokenBlasterBot()
+        state = self.state([(700, 100)])
+        state['bonuses'] = [(300, 450)]
+        self.assertEqual(bot.choose_direction(state), 'left')
+
+    def test_unreachable_or_already_passed_bonus_does_not_waste_travel(self):
+        for bonus in ((60, 555), (300, 640)):
+            bot = TokenBlasterBot()
+            state = self.state([(700, 100)])
+            state['bonuses'] = [bonus]
+            self.assertEqual(bot.choose_direction(state), 'right')
+
+    def test_bonus_fall_speed_changes_whether_it_can_be_caught(self):
+        bot = TokenBlasterBot()
+        state = self.state([(700, 100)])
+        state.update(timestamp=0, bonuses=[(210, 310)])
+        self.assertEqual(bot.choose_direction(state), 'left')
+        state.update(timestamp=.1, bonuses=[(210, 440)])
+        self.assertEqual(bot.choose_direction(state), 'right')
+
+    def test_collected_or_missing_bonus_releases_pickup_target(self):
+        bot = TokenBlasterBot()
+        state = self.state([(700, 100)])
+        state.update(timestamp=0, bonuses=[(300, 450)])
+        self.assertEqual(bot.choose_direction(state), 'left')
+        state.update(timestamp=.1, bonuses=[])
+        self.assertEqual(bot.choose_direction(state), 'right')
+        self.assertIsNone(bot._bonus_target)
+
+    def test_after_dodge_finishes_the_newly_reached_enemy_column(self):
+        bot = TokenBlasterBot()
+        state = self.state([(700, 100)])
+        state['timestamp'] = 0
+        bot.choose_direction(state)
+        bot._evading = True
+        state.update(timestamp=.1, enemies=[(395, 100), (700, 100)])
+        self.assertIsNone(bot.choose_direction(state))
+
+    def test_play_holds_fire_and_movement_together_during_dodge(self):
+        bot = TokenBlasterBot()
+        state = self.state([(400, 100)])
+        state['bullets'] = [(405, 500)]
+        events = []
+        with patch.object(bot, 'inspect', return_value=state), \
+             patch('pyautogui.screenshot') as shot, \
+             patch('pyautogui.size', return_value=(1000, 800)), \
+             patch('pyautogui.click'), patch('time.sleep'), \
+             patch('keyboard.is_pressed', side_effect=[False]*3+[True]), \
+             patch('pyautogui.keyDown', side_effect=lambda k, **kw: events.append(k)), \
+             patch('pyautogui.keyUp'):
+            shot.return_value.size = (1000, 800)
+            bot.play()
+        self.assertIn('space', events)
+        self.assertIn('left', events)
+        self.assertFalse(bot._held)
+
     def test_unknown_reading_releases_held_movement_and_fire(self):
         bot = TokenBlasterBot()
         events = []

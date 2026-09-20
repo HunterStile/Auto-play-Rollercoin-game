@@ -87,7 +87,10 @@ board change (or consumption of a full top run that clears immediately).
 It keeps the verified board geometry, reads replacement piles after every
 placement and chooses new moves using their exposed top colors. A tall mixed pile
 can hide another hex: only that obscured hex is blocked, while the bot keeps
-playing on readable cells. An unconfirmed placement stops without repeating it. Q or the
+playing on readable cells. Crowded-board checks tolerate the shaded cap edges
+and blended bottom rims seen in the supplied tall-pile screenshots, while
+still validating the pile base and layer counts.
+An unconfirmed placement stops without repeating it. Q or the
 mouse top-left failsafe stops play, and held mouse buttons are released even
 on input errors. A four-second lack of progress or 65-second deadline returns
 an unverified result. A recognized empty tray waits for refill until the round
@@ -174,15 +177,23 @@ and the gap target. `test_flappy_scanner.py` uses the same inspector and options
 On an unverified stop, the standalone run saves its last frame and reason to
 `debug/flappyrocket/last_failure.png` and `last_failure.txt` (Git-ignored).
 
-Token Blaster recognizes the board, animated ship, green/orange enemies and
-yellow and pale projectile candidates, including the muted colors of the supplied video.
+Token Blaster recognizes the board, animated ship, green/orange enemies,
+yellow and pale projectile candidates, and the gray cases of the three weapon
+bonuses (double, triple and wave shot).
+Reachable pickups take priority over distant targets; tracked fall velocity
+estimates whether there is time to collect them. Missing or already-passed
+pickups are abandoned, and collision avoidance still overrides collection.
 It retains a nearby target until it disappears and fires while an enemy is in
-the shot lane. Movement stays held between valid readings instead of stopping
+the shot lane, including while dodging or collecting a bonus. Movement stays
+held between valid readings instead of stopping
 during every capture/analysis. Detection runs on a reduced image. Short-lived
 motion tracks estimate projectile and enemy velocities; steering compares the
 left, stationary and right routes over about 0.7 seconds, including ship size,
 board edges and uncertainty in movement speed. A predicted collision overrides
-targeting and pauses fire. Orange divers remain visible to the detector near
+targeting; comparably safe escape routes favor firing opportunities and progress
+toward a pickup/target before movement continuity. After a dodge, an enemy
+column already in the shot lane takes priority over the old distant target.
+Orange divers remain visible to the detector near
 the ship; hull shape and blue cockpit reject explosion fragments. These linear
 forecasts still need live calibration, especially curved dives, crowded scenes
 and unfamiliar projectiles. Later levels and result dialogs remain unverified.

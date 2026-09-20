@@ -37,6 +37,16 @@ and reject both. Tests require cap-shoulder validation to split the piles,
 correct counts at three scales and offsets, and a placement through the same
 orchestrator/play loop used by main. All mouse and keyboard input is mocked.
 
+`cryptohex_crowded_stall.png` is the user's game-only screenshot from
+2026-09-20 04:12:21. It has blue x5 at cells 4 and 10, red x9 at cell 8,
+green x8 at cell 14, and blue x2 / green x1 / green x4 in the tray.
+The blue cap shoulder obscured a grid-validation point; the small neighborhood
+contained too little table and rejected the whole layout. At 70% zoom the red
+pile's bottom sample landed on its blended rim, also rejecting the board.
+Replay at 70%, 100%, 120% and offsets requires accurate counts, blocked hidden
+cells 7 and 13, a legal next move and continued play through the main
+orchestrator. All input is mocked; this is not evidence of a live win.
+
 `flappyrocket.png` is the game-only crop of the screenshot supplied on
 2026-09-19 at 22:16:10. It contains a blue-cabin rocket near (160, 582), smoke,
 HUD text, and one red/green pipe pair around x=592..695. The dark rods extend
@@ -76,6 +86,20 @@ components; regression coverage requires them to form one detected ship at
 the original screen position while preserving explosion rejection.
 It also verifies that the bright nose is excluded from projectile detection;
 the frame contains one actual yellow projectile.
+
+`tokenblaster_bonus_double.png`, `_triple.png` and `_wave.png` are the original
+63x63 weapon pickup sprites retrieved on 2026-09-20 from RollerCoin's public
+`https://rollercoin.com/static/img/game_sprites/game2/{double,triple,wave}_shot.png?v=2.0.0`.
+Tests composite these icons onto the supplied game frame at two heights, three
+scales and translated screen positions. They require separate bonus detections,
+unchanged enemy/projectile counts, and continued ship recognition for the blue
+wave pickup near the hull. These are synthetic scenes with real sprites, not
+recordings of successful collections. Trajectory/controller tests cover pickup
+reachability, missed/collected pickups, dangerous routes, concurrent firing and
+dodging, and choosing enemy columns over continuing an unproductive escape.
+The screenshot-to-steering test also checks that a pickup changes the decision.
+Existing real frames must produce no false pickups. Live timing, collection
+rates and completion before the in-game timer expires remain unverified.
 
 `coinfisher.png` is the game-only crop of the screenshot supplied on 2026-09-10.
 It contains 28 visible coins; account details and surrounding browser UI are excluded.

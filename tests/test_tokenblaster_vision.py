@@ -7,6 +7,50 @@ from game_engine.games.tokenblaster import TokenBlasterBot
 
 
 class TokenBlasterTests(unittest.TestCase):
+    def test_real_bonus_sprites_are_pickups_not_enemies_or_projectiles(self):
+        fixtures = Path(__file__).parent/'fixtures'
+        for kind in ('double', 'triple', 'wave'):
+            for scale in (.7, 1, 1.2):
+                for cy in (430, 590):
+                    with self.subTest(kind=kind, scale=scale, y=cy):
+                        with Image.open(fixtures/'tokenblaster_level1.png') as source:
+                            board = source.convert('RGB')
+                        with Image.open(fixtures/f'tokenblaster_bonus_{kind}.png') as sprite:
+                            # The game uses 63px icons on its 960px-wide canvas.
+                            size = round(board.width*63/960)
+                            sprite = sprite.convert('RGBA').resize((size, size))
+                            board.paste(sprite, (300-size//2, cy-size//2), sprite)
+                        board = board.resize((round(board.width*scale), round(board.height*scale)))
+                        screen = Image.new('RGB', (1500, 1100), (24, 25, 40))
+                        screen.paste(board, (130, 80))
+                        state = TokenBlasterBot().inspect(screen)
+                        self.assertIsNotNone(state)
+                        self.assertEqual(len(state.get('bonuses', [])), 1)
+                        x, y, _, _ = state['region']
+                        bx, by = state['bonuses'][0]
+                        self.assertAlmostEqual(x+bx, 130+300*scale, delta=5)
+                        self.assertAlmostEqual(y+by, 80+cy*scale, delta=5)
+                        self.assertEqual(len(state['enemies']), 27)
+                        self.assertEqual(len(state['bullets']), 1)
+
+    def test_real_frames_do_not_invent_pickups(self):
+        for name in ('level1', 'short_exhaust', 'video_09', 'video_30', 'video_36'):
+            with self.subTest(frame=name):
+                with Image.open(Path(__file__).parent/f'fixtures/tokenblaster_{name}.png') as frame:
+                    self.assertEqual(TokenBlasterBot().inspect(frame)['bonuses'], [])
+
+    def test_inspected_pickup_drives_real_steering(self):
+        fixtures = Path(__file__).parent/'fixtures'
+        with Image.open(fixtures/'tokenblaster_level1.png') as source:
+            frame = source.convert('RGB')
+        with Image.open(fixtures/'tokenblaster_bonus_triple.png') as source:
+            sprite = source.convert('RGBA').resize((54, 54))
+        frame.paste(sprite, (610, 410), sprite)
+        bot = TokenBlasterBot()
+        state = bot.inspect(frame)
+        # The old controller went left for enemies and ignored the right pickup.
+        self.assertEqual(bot.choose_direction(state), 'right')
+
     def test_short_exhaust_ship_at_right_edge(self):
         with Image.open(Path(__file__).parent/'fixtures/tokenblaster_short_exhaust.png') as board:
             screen = Image.new('RGB', (1720, 1080), (24, 25, 40))

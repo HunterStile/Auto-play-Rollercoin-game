@@ -99,8 +99,14 @@ def _stack(pixels, cx, cy, scale, below=()):
             labels[first+1:last] = labels[last]
     bottom = round(cy+27*scale)-y0
     if labels[bottom] == 0:
-        # An unknown sprite must never be treated as an empty destination.
-        return None
+        # At reduced zoom this sample can land on the blended bottom rim.
+        # Search only a few pixels upward; the base position, cap and complete
+        # layer counts below must still validate before accepting the pile.
+        nearby = [i for i in range(bottom-1, max(-1, bottom-max(2, round(3*scale))-1), -1)
+                  if labels[i]]
+        if not nearby:
+            return None
+        bottom = nearby[0]
     end = bottom
     # A lower cap may touch this pile's base. Do not walk into that sprite.
     base_end = min(len(labels)-1, round(cy+30*scale)-y0-1)
@@ -156,7 +162,10 @@ def _read_layout(pixels, mask, centers, sources, region, frame_size, scale):
                 # A neighboring pile's antialiased gray outline can land on
                 # this exact point. Require both table and chip evidence in
                 # its small neighborhood, rather than rejecting one edge pixel.
-                radius = max(2, round(5*scale))
+                # Include enough table around a broad cap shoulder. A 5px
+                # window could be almost entirely rim/chip depending on a
+                # one-pixel rounding shift in the screenshot placement.
+                radius = max(3, round(7*scale))
                 patch = pixels[yy-radius:yy+radius+1, xx-radius:xx+radius+1]
                 if not (_brown(patch).mean() > .2 and
                         (_colors(patch*1.6) > 0).mean() > .2):

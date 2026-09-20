@@ -27,12 +27,25 @@ class TokenBlasterDodgeTests(unittest.TestCase):
         direction = bot.choose_direction(self.frame(.1, bullets=[(330, 490), (405, 510)]))
         self.assertEqual(direction, 'right')
 
-    def test_escape_suppresses_fire_even_with_an_aligned_target(self):
+    def test_escape_keeps_firing_at_an_aligned_target(self):
         bot = TokenBlasterBot()
         state = self.frame(0, bullets=[(405, 500)])
         state['enemies'] = [(400, 100)]
         self.assertIsNotNone(bot.choose_direction(state))
-        self.assertFalse(bot.should_fire(state))
+        self.assertTrue(bot.should_fire(state))
+
+    def test_equally_safe_dodge_moves_toward_enemy_column(self):
+        bot = TokenBlasterBot()
+        state = self.frame(0, bullets=[(400, 500)])
+        state['enemies'] = [(340, 100), (340, 170)]
+        bot._last_direction = 'right'
+        self.assertEqual(bot.choose_direction(state), 'left')
+
+    def test_dangerous_bonus_route_does_not_override_escape(self):
+        bot = TokenBlasterBot()
+        state = self.frame(0, bullets=[(350, 505)])
+        state['bonuses'] = [(280, 440)]
+        self.assertNotEqual(bot.choose_direction(state), 'left')
 
     def test_receding_projectile_does_not_interrupt_an_aligned_shot(self):
         bot = TokenBlasterBot()

@@ -15,6 +15,29 @@ FIXTURES = Path(__file__).parent/'fixtures'
 
 
 class LiveReplayTests(unittest.TestCase):
+    def test_crowded_tall_piles_do_not_stop_the_controller(self):
+        with Image.open(FIXTURES/'cryptohex_crowded_stall.png') as original:
+            for scale in (.7, 1, 1.2):
+                for offset in ((0, 0), (173, 89)):
+                    with self.subTest(scale=scale, offset=offset):
+                        resized = original.resize(tuple(round(v*scale) for v in original.size))
+                        frame = Image.new('RGB', (resized.width+offset[0], resized.height+offset[1]))
+                        frame.paste(resized, offset)
+                        board = detect_board(frame)
+                        self.assertIsNotNone(board, 'The supplied crowded board must remain playable')
+                        expected = [()]*19
+                        expected[4] = expected[10] = ('B',)*5
+                        expected[8], expected[14] = ('R',)*9, ('G',)*8
+                        expected[7] = expected[13] = HIDDEN
+                        self.assertEqual(board.stacks, tuple(expected))
+                        self.assertEqual(board.trays, (('B',)*2, ('G',), ('G',)*4))
+                        self.assertEqual(detect_board(frame, previous=board), board)
+                        bot = CryptoHexBot()
+                        self.assertIsNone(bot.next_action(board, 0))
+                        move = bot.next_action(board, .2)
+                        self.assertIsNotNone(move, 'Tall stacks must not leave the bot waiting')
+                        self.assertFalse(board.stacks[move.target])
+
     def test_main_round_with_touching_piles_keeps_playing(self):
         with Image.open(FIXTURES/'cryptohex_main_stall.png') as original:
             for scale in (.7, 1, 1.2):
@@ -40,7 +63,13 @@ class LiveReplayTests(unittest.TestCase):
                         self.assertFalse(board.stacks[move.target])
 
     def test_main_orchestrator_plays_the_stalled_frame(self):
-        with Image.open(FIXTURES/'cryptohex_main_stall.png') as image:
+        self._assert_orchestrator_plays('cryptohex_main_stall.png', 2, ('B',)*9)
+
+    def test_main_orchestrator_plays_the_crowded_frame(self):
+        self._assert_orchestrator_plays('cryptohex_crowded_stall.png', 0, ('G',)*8)
+
+    def _assert_orchestrator_plays(self, fixture, source, stack14):
+        with Image.open(FIXTURES/fixture) as image:
             frame = image.convert('RGB')
         orchestrator = GameOrchestrator({'CRYPTOHEX_POSITION': (10, 10),
                                         'CRYPTOHEX_START': (20, 20)})
@@ -62,8 +91,8 @@ class LiveReplayTests(unittest.TestCase):
             orchestrator._run_single_game('cryptohex')
             place.assert_called_once()
             board, move = place.call_args.args
-            self.assertEqual(move.source, 2)
-            self.assertEqual(board.stacks[14], ('B',)*9)
+            self.assertEqual(move.source, source)
+            self.assertEqual(board.stacks[14], stack14)
             self.assertFalse(board.stacks[move.target])
 
     def test_nearly_complete_stacks_remain_readable_and_allow_next_move(self):
