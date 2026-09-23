@@ -80,9 +80,9 @@ class GameOrchestrator:
             'gain_power_position': self.gain_power_position,
             'difficulty': get('LEVEL_MEMORY', 2) if game_id == 'coinflip' else 1,
         }
-        if game_id == 'cryptohex':
+        if game_id in ('cryptohex', 'cryptohamster'):
             # main.py starts the routine with cwd set to the project/exe folder.
-            game_config['diagnostics_dir'] = 'debug/cryptohex'
+            game_config['diagnostics_dir'] = f'debug/{game_id}'
         return game_config
 
     def _run_single_game(self, game_id: str) -> bool:

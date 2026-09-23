@@ -16,3 +16,4 @@ from game_engine.games import coinfisher
 from game_engine.games import flappyrocket
 from game_engine.games import drhamster
 from game_engine.games import cryptohex
+from game_engine.games import cryptohamster

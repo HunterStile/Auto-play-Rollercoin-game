@@ -217,6 +217,28 @@ it saves the last full screenshot and reason locally to
 `debug/tokenblaster/last_failure.png` and `last_failure.txt`; these are Git-ignored.
 Offline regressions: `python -m unittest discover -s tests -p "test_tokenblaster*.py" -v`.
 
+Crypto Hamster is available in the main GUI as an MVP. Configure its game icon
+and Start coordinates before adding it to Game Order. It detects the hamster,
+enemies, reusable brown platforms and fragile gray platforms from the game
+screen. Scattered fragments are excluded as fake/broken landing surfaces. The
+controller steers toward a reachable platform, accounts for horizontal screen
+wrap, and holds Up with regular key pulses so it keeps shooting upward. Set
+`fire_key='space'` in direct bot config, or `--fire-key space` in the standalone
+launcher, if your game version uses Space. [Platform and control reference](https://www.publish0x.com/rollercoin-playing-a-blockchain-game/rollercoin-how-to-successfully-play-crypto-hamster-xlqwoze).
+Recognition loss releases every key; Q or the mouse failsafe stops a standalone
+run. The supplied screenshot validates detection only. Jump timing, later
+levels and victory detection still need a live game check; timeout is reported
+as unverified. Rebuild an existing executable to include the new game.
+
+```powershell
+python test_cryptohamster.py --image tests/fixtures/cryptohamster.png
+python test_cryptohamster.py --play
+python -m unittest discover -s tests -p test_cryptohamster.py -v
+```
+
+`--play` waits four seconds for an already started, focused game. On an
+unverified stop it saves the last screenshot and reason in `debug/cryptohamster`.
+
 
 2048 Coins keeps its `down, left, down, right, down` pattern. It checks for the
 cyan reward button, its CLAIM REWARD lettering, and the surrounding gray dialog
