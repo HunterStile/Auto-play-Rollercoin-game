@@ -64,7 +64,7 @@ All games are registered at startup by `game_engine/games/__init__.py` and
 appear automatically in the GUI — no hardcoded game lists.
 
 Crypto Hex is selectable as **MVP**. It locates the three tray rims and the
-19-cell hex board, reads red/blue/green stacks from bottom to top, and favors
+19-cell hex board, reads red/blue/green/yellow stacks from bottom to top, and favors
 placement beside matching exposed colors. Mixed stacks retain their underlying
 colors in the reading. The heuristic prioritizes a combined top run of at least
 ten, following the [firsthand player guide](https://ecency.com/@coderad/rollercoin-minigame-guide-win-conditions-strategies-and-ratings);
@@ -100,8 +100,10 @@ a verified win. The routine handles reward collection.
 
 The supplied screenshot is replayed at 70%, 100% and 120% scale with offsets.
 It has a one-chip blue pile and four-chip red pile on the board; the tray has
-three green, three red, and five green under five blue chips. Only this artwork
-and three colors are covered. Severe overlap, tall stacks hiding other stacks,
+three green, three red, and five green under five blue chips. A higher-level
+screenshot also covers yellow chips in the tray; synthetic replay places that
+artwork on the board and above green chips to verify mixed stacks and matching.
+Only these four chip colors are covered. Severe overlap, tall stacks hiding other stacks,
 additional colors or unfamiliar layouts can stop detection. A live level-one
 win (12,750 points) was observed and confirmed by the user on September 19.
 The real replay covers five placements, replacement trays, merges and the

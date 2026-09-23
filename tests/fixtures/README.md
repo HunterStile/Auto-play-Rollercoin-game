@@ -47,6 +47,15 @@ Replay at 70%, 100%, 120% and offsets requires accurate counts, blocked hidden
 cells 7 and 13, a legal next move and continued play through the main
 orchestrator. All input is mocked; this is not evidence of a live win.
 
+`cryptohex_yellow.png` is the user's game-only screenshot from 2026-09-20
+04:58:09, showing an empty board and green x2, yellow x3, blue x3 in the tray.
+Tests cover 70%, 100%, 120% scale and offsets, plus synthetic placements of the
+actual yellow sprite on the board and on two green layers. They require yellow
+to guide matching/clear decisions and a placement through the real play loop.
+The cropped HUD must not invalidate fully visible cells, while an actually
+clipped yellow cap remains unreadable. Keyboard/mouse input is mocked;
+these checks do not establish wins at higher levels.
+
 `flappyrocket.png` is the game-only crop of the screenshot supplied on
 2026-09-19 at 22:16:10. It contains a blue-cabin rocket near (160, 582), smoke,
 HUD text, and one red/green pipe pair around x=592..695. The dark rods extend

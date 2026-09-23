@@ -30,7 +30,7 @@ def main():
     if board is None:
         print('Griglia o pile non riconosciute. Nessun input inviato.')
         return 1
-    print('Griglia: 19 caselle; R=rosso, B=blu, G=verde; strati dal basso verso alto.')
+    print('Griglia: 19 caselle; R=rosso, B=blu, G=verde, Y=giallo; strati dal basso verso alto.')
     for index, stack in enumerate(board.stacks):
         if stack:
             print(f'Casella {index}, colonna/riga {CELLS[index]}: {"".join(stack)}')

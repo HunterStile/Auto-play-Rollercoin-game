@@ -1,4 +1,4 @@
-"""Crypto Hex screenshot reader for the supplied three-color artwork.
+"""Crypto Hex screenshot reader for the supplied red, blue, green and yellow chips.
 
 The three tray rims anchor a 3/4/5/4/3 hex lattice. Stacks are bottom-first
 color runs; only visible, aligned stacks are accepted. No screen input here.
@@ -51,6 +51,10 @@ def _colors(rgb):
     result[(r > 105) & (r > g*2) & (b > g*.98) & (b < g*1.3)] = 1
     result[(b > 110) & (b > r*1.55) & (g > r*1.25) & (b > g*1.15)] = 2
     result[(g > 105) & (g > r*1.35) & (r > b*1.5)] = 3
+    # Yellow has a much closer red/green ratio than the orange-brown table,
+    # including the shaded cap and the darker stripes between chip layers.
+    result[(r > 105) & (g > 85) & (r > g*1.1) & (r < g*1.35)
+           & (g > b*1.8) & (b > r*.25)] = 4
     return result
 
 
@@ -71,8 +75,11 @@ def _stack(pixels, cx, cy, scale, below=()):
     """Read the central stripe; subtract the shaded top face from its top run."""
     height, width = pixels.shape[:2]
     x0, x1 = round(cx-5*scale), round(cx+5*scale)
-    y0, y1 = round(cy-165*scale), round(cy+34*scale)
-    if x0 < 0 or y0 < 0 or x1 > width or y1 > height:
+    # A cropped HUD can truncate the *search window* above a fully visible
+    # empty hex or short pile. A pile whose cap is actually clipped is still
+    # rejected below when its colored run reaches the start of the stripe.
+    y0, y1 = max(0, round(cy-165*scale)), round(cy+34*scale)
+    if x0 < 0 or x1 > width or y1 > height:
         return None
     patch = pixels[round(cy-12*scale):round(cy+12*scale),
                    round(cx-23*scale):round(cx+23*scale)]
@@ -146,7 +153,7 @@ def _stack(pixels, cx, cy, scale, below=()):
         rounded = round(count)
         if not 1 <= rounded <= 15 or abs(count-rounded) > .38:
             return None
-        stack.extend('RBG'[color-1] for _ in range(rounded))
+        stack.extend('RBGY'[color-1] for _ in range(rounded))
     return tuple(stack)
 
 
@@ -173,10 +180,12 @@ def _read_layout(pixels, mask, centers, sources, region, frame_size, scale):
     stacks = [None]*19
     for i in range(18, -1, -1):
         below = stacks[i+1] if i < 18 and CELLS[i+1][0] == CELLS[i][0] else ()
-        if below and len(below) >= 8:
+        two_below = (stacks[i+2] if i+2 < len(stacks)
+                     and CELLS[i+2][0] == CELLS[i][0] else ())
+        if (below and len(below) >= 8) or (two_below and len(two_below) >= 10):
             # We can read the lower pile but cannot establish whether the hex
-            # behind it is empty. Its cap can even look like a one-chip stack
-            # at the upper hex's base. Never read that overlap as a second pile.
+            # behind it is empty. A ten-chip pile can cover even the hex two
+            # rows above, so never read those overlaps as separate piles.
             stacks[i] = HIDDEN
         else:
             stacks[i] = _stack(pixels, *centers[i], scale, below=below)
