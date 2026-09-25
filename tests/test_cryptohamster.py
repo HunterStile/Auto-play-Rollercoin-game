@@ -4,7 +4,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from PIL import Image
+import numpy as np
+from PIL import Image, ImageDraw
 
 from game_engine.cryptohamster_vision import inspect_frame
 from game_engine.games.cryptohamster import CryptoHamsterBot
@@ -14,6 +15,44 @@ FIXTURE = Path(__file__).parent/'fixtures/cryptohamster.png'
 
 
 class CryptoHamsterTests(unittest.TestCase):
+    def test_player_is_tracked_while_split_across_either_screen_edge(self):
+        with Image.open(FIXTURE) as source:
+            board = np.asarray(source.convert('RGB').crop((123, 105, 954, 665)))
+        for shift in (90, 101, 110):
+            with self.subTest(shift=shift):
+                frame = Image.fromarray(np.roll(board, shift, axis=1))
+                state, error = inspect_frame(frame, (0, 0, 831, 560))
+                self.assertIsNone(error)
+                offset = CryptoHamsterBot._wrapped_offset(
+                    state['player'][0], (730+shift) % 831, 831)
+                self.assertAlmostEqual(offset, 0, delta=5)
+                self.assertAlmostEqual(state['feet'], 278, delta=7)
+
+    def test_scrolling_edge_rocks_do_not_shrink_the_wrap_width(self):
+        with Image.open(FIXTURE) as source:
+            frame = source.convert('RGB')
+        # Tall rocks cover most of the border but leave sky visible at the top.
+        draw = ImageDraw.Draw(frame)
+        draw.rectangle((123, 125, 165, 664), fill=(140, 140, 140))
+        draw.rectangle((910, 125, 953, 664), fill=(140, 140, 140))
+        state, error = inspect_frame(frame)
+        self.assertIsNone(error)
+        self.assertEqual(state['region'], (123, 105, 831, 560))
+
+    def test_steers_through_each_edge_towards_the_opposite_platform(self):
+        for mirrored, direction in ((False, 'left'), (True, 'right')):
+            with self.subTest(direction=direction):
+                bot = CryptoHamsterBot()
+                platforms = [{'x': 640, 'y': 310, 'width': 120, 'kind': 'solid'},
+                             {'x': 230, 'y': 200, 'width': 120, 'kind': 'solid'}]
+                if mirrored:
+                    platforms = [dict(p, x=830-p['x']-p['width']) for p in platforms]
+                for index, (px, feet) in enumerate(((100, 270), (45, 230), (810, 210))):
+                    state = {'region': (0, 0, 830, 560),
+                             'player': (830-px if mirrored else px, feet-50),
+                             'feet': feet, 'platforms': platforms, 'enemies': []}
+                    self.assertEqual(bot.choose_direction(state, 1.0+.16*index), direction)
+
     def test_supplied_screenshot_distinguishes_player_enemy_and_platforms(self):
         with Image.open(FIXTURE) as frame:
             state, error = inspect_frame(frame)

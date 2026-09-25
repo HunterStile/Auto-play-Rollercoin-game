@@ -34,7 +34,10 @@ def inspect_frame(frame, region_hint=None):
             return None, 'area di gioco assente'
         y, bottom = int(board_rows.min()), int(board_rows.max())+1
         col_fill = background[y:bottom].sum(axis=0)
-        board_cols = np.flatnonzero(col_fill > .28*(bottom-y))
+        # Scrolling rocks can cover almost all of an edge column. Requiring
+        # 28% sky here shrinks and shifts the field as they move, corrupting
+        # wrap distances and resetting the controller's velocity every frame.
+        board_cols = np.flatnonzero(col_fill >= max(2, .005*(bottom-y)))
         if not len(board_cols):
             return None, 'area di gioco assente'
         x, right = int(board_cols.min()), int(board_cols.max())+1
@@ -47,23 +50,28 @@ def inspect_frame(frame, region_hint=None):
     board = rgb[y:y+h, x:x+w]
     r, g, b = board.transpose(2, 0, 1)
     unit = w/830
-    orange = ((r > 180) & (g > 95) & (g < 215) & (b < 130)
-              & (r > g+25) & (g > b+25))
+    # Rejoin the two visible halves of a hamster crossing the horizontal seam.
+    # Padding also lets the torso check see the suit on the opposite edge.
+    pad = int(np.ceil(60*unit))
+    wrapped = np.pad(board, ((0, 0), (pad, pad), (0, 0)), mode='wrap')
+    hr, hg, hb = wrapped.transpose(2, 0, 1)
+    orange = ((hr > 180) & (hg > 95) & (hg < 215) & (hb < 130)
+              & (hr > hg+25) & (hg > hb+25))
     heads = []
     for ox, oy, ow, oh, area in _objects(orange):
         if not (18*unit <= ow <= 57*unit and 12*unit <= oh <= 43*unit
                 and area >= 90*unit*unit):
             continue
-        if not (.02*w < ox+ow/2 < .99*w and .08*h < oy < .96*h):
+        if not (pad <= ox+ow/2 < pad+w and .08*h < oy < .96*h):
             continue
         # The player's white space suit extends below the orange face.
         left = max(0, int(ox-7*unit))
-        right = min(w, int(ox+ow+7*unit))
+        right = min(w+2*pad, int(ox+ow+7*unit))
         bottom = min(h, int(oy+oh+38*unit))
-        torso = board[int(oy+oh):bottom, left:right]
+        torso = wrapped[int(oy+oh):bottom, left:right]
         white = ((torso[:, :, 0] > 185) & (torso[:, :, 1] > 185)
                  & (torso[:, :, 2] > 180)).sum()
-        heads.append((float(white), ox+ow/2, oy+oh/2, oy+oh))
+        heads.append((float(white), (ox+ow/2-pad) % w, oy+oh/2, oy+oh))
     if not heads:
         return None, 'criceto non rilevato'
     heads.sort(reverse=True)

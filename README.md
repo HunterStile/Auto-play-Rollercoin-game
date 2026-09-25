@@ -226,7 +226,11 @@ wrap, and holds Up with regular key pulses so it keeps shooting upward. Set
 `fire_key='space'` in direct bot config, or `--fire-key space` in the standalone
 launcher, if your game version uses Space. [Platform and control reference](https://www.publish0x.com/rollercoin-playing-a-blockchain-game/rollercoin-how-to-successfully-play-crypto-hamster-xlqwoze).
 Recognition loss releases every key; Q or the mouse failsafe stops a standalone
-run. The supplied screenshot validates detection only. Jump timing, later
+run. Detection keeps the full field width when scrolling rocks cover most of
+an edge, and joins the two visible halves of the hamster during horizontal
+wrap. Regression tests cover both edge directions and a split player sprite.
+These fixes are verified offline; live climbing consistency remains unverified.
+The supplied screenshot validates detection only. Jump timing, later
 levels and victory detection still need a live game check; timeout is reported
 as unverified. Rebuild an existing executable to include the new game.
 
